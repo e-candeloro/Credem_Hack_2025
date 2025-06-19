@@ -178,8 +178,8 @@ app.db
 *.sqlite
 *.sqlite3
 
-# Streamlit
-.streamlit/
+# Streamlit secrets
+.streamlit/secrets.toml
 
 # Docker
 .dockerignore
@@ -342,3 +342,6 @@ Temporary Items
 
 # Local development
 .local/
+
+# Data (ignored)
+data/

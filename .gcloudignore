@@ -98,3 +98,6 @@ temp/
 *.key
 *.crt
 secrets/
+
+# Data (ignored)
+data/

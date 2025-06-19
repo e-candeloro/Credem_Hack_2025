@@ -233,7 +233,6 @@ with tab3:
     ### 🔧 Development
 
     This scaffold is ready for extension with:
-    - User Management & Authentication
     - HR Process Automation
     - AI/ML Integration
     - Database Models

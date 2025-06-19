@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.api.v1.deps import get_current_user
 from app.core.database import get_db
 
 router = APIRouter()
@@ -89,7 +88,6 @@ async def get_items(
     limit: int = 100,
     category: str | None = None,
     priority: str | None = None,
-    current_user: dict = Depends(get_current_user),
 ):
     """Get list of items with optional filtering."""
     items = DEMO_ITEMS
@@ -104,7 +102,7 @@ async def get_items(
 
 
 @router.get("/items/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int, current_user: dict = Depends(get_current_user)):
+async def get_item(item_id: int):
     """Get a specific item by ID."""
     item = next((item for item in DEMO_ITEMS if item["id"] == item_id), None)
 
@@ -117,7 +115,7 @@ async def get_item(item_id: int, current_user: dict = Depends(get_current_user))
 
 
 @router.post("/items", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
-async def create_item(item: ItemCreate, current_user: dict = Depends(get_current_user)):
+async def create_item(item: ItemCreate):
     """Create a new item."""
     new_item = {
         "id": max(i["id"] for i in DEMO_ITEMS) + 1,
@@ -127,7 +125,6 @@ async def create_item(item: ItemCreate, current_user: dict = Depends(get_current
         "priority": item.priority,
         "created_at": datetime.utcnow(),
         "updated_at": None,
-        "created_by": current_user["email"],
     }
 
     # In a real application, you would save to database here
@@ -137,14 +134,14 @@ async def create_item(item: ItemCreate, current_user: dict = Depends(get_current
 
 
 @router.get("/items/categories", response_model=list[str])
-async def get_categories(current_user: dict = Depends(get_current_user)):
+async def get_categories():
     """Get list of available item categories."""
     categories = list({item["category"] for item in DEMO_ITEMS})
     return sorted(categories)
 
 
 @router.get("/items/priorities", response_model=list[str])
-async def get_priorities(current_user: dict = Depends(get_current_user)):
+async def get_priorities():
     """Get list of available priority levels."""
     priorities = list({item["priority"] for item in DEMO_ITEMS})
     return sorted(priorities)

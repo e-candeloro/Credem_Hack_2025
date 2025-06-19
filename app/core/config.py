@@ -37,6 +37,9 @@ class Settings(BaseSettings):
 
     # External APIs (for future use)
     openai_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
+    llm_api_key: str | None = Field(default=None, env="LLM_API_KEY")
+    google_api_key: str | None = Field(default=None, env="GOOGLE_API_KEY")
+    vision_llm_api_key: str | None = Field(default=None, env="VISION_LLM_API_KEY")
 
     # CORS
     allowed_origins: list[str] = Field(
