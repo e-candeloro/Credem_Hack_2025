@@ -84,6 +84,12 @@ with st.sidebar:
     if st.button("🔄 Refresh Status"):
         st.rerun()
 
+    # Quick access to chat
+    st.markdown("---")
+    st.markdown("### 💬 Chat Interface")
+    if st.button("🚀 Open AI Chat", use_container_width=True):
+        st.switch_page("pages/03_Chat.py")
+
     st.markdown("---")
     st.markdown("### API Documentation")
     st.markdown(
@@ -222,6 +228,7 @@ with tab3:
     - **Package Manager**: uv
     - **Containerization**: Docker & Docker Compose
     - **Environment Management**: python-dotenv + pydantic
+    - **AI/LLM**: LangGraph + LangChain (Groq, Google, Ollama support)
 
     ### 🚀 Features
 
@@ -229,6 +236,8 @@ with tab3:
     - **Environment Configuration**: Flexible settings management
     - **Docker Ready**: Production-ready containerization
     - **CI/CD Ready**: GitHub Actions integration
+    - **AI Chat Interface**: Direct LLM and Agent with Tools interaction
+    - **Multi-LLM Support**: Groq, Google, and Ollama integration
 
     ### 🔧 Development
 
@@ -237,6 +246,7 @@ with tab3:
     - AI/ML Integration
     - Database Models
     - Additional API Endpoints
+    - Advanced Agent Tools
 
     ### 📚 Next Steps
 
@@ -245,6 +255,7 @@ with tab3:
     3. Create HR-specific endpoints
     4. Integrate AI/ML services
     5. Add comprehensive testing
+    6. Enhance agent tools for HR tasks
     """
     )
 

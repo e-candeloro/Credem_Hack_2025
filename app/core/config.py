@@ -1,13 +1,22 @@
 import os
+from enum import Enum
 from functools import lru_cache
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 # Load .env file if it exists
 load_dotenv()
+
+
+class LLMVendor(str, Enum):
+    """Supported LLM vendors."""
+
+    GROQ = "groq"
+    GOOGLE = "google"
+    OLLAMA = "ollama"
 
 
 class Settings(BaseSettings):
@@ -35,11 +44,14 @@ class Settings(BaseSettings):
         default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
 
-    # External APIs (for future use)
-    openai_api_key: str | None = Field(default=None, env="OPENAI_API_KEY")
+    # LLM Configuration
+    llm_vendor: LLMVendor = Field(default=LLMVendor.GROQ, env="LLM_VENDOR")
+    llm_model: str = Field(default="mixtral-8x7b-32768", env="LLM_MODEL")
     llm_api_key: str | None = Field(default=None, env="LLM_API_KEY")
     google_api_key: str | None = Field(default=None, env="GOOGLE_API_KEY")
-    vision_llm_api_key: str | None = Field(default=None, env="VISION_LLM_API_KEY")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434", env="OLLAMA_BASE_URL"
+    )
 
     # CORS
     allowed_origins: list[str] = Field(
@@ -55,17 +67,23 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
 
-    @validator("debug", pre=True)
+    @field_validator("debug", mode="before")
     def parse_debug(cls, v):
         if isinstance(v, str):
             return v.lower() in ("true", "1", "yes", "on")
         return v
 
-    @validator("environment")
+    @field_validator("environment")
     def validate_environment(cls, v):
         allowed = ["development", "staging", "production", "test"]
         if v not in allowed:
             raise ValueError(f"Environment must be one of {allowed}")
+        return v
+
+    @field_validator("llm_vendor", mode="before")
+    def validate_llm_vendor(cls, v):
+        if isinstance(v, str):
+            return LLMVendor(v.lower())
         return v
 
     class Config:
