@@ -25,6 +25,7 @@ dependencies = [
     "python-multipart",
     "python-dotenv",
     "pre-commit>=4.2.0",
+    "requests>=2.32.4",
 ]
 
 [project.optional-dependencies]
