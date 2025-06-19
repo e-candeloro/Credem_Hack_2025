@@ -1,0 +1,52 @@
+# Ignore version control
+.git
+.gitignore
+
+# Ignore Python cache and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+ENV/
+
+# Ignore environment variables and local config
+.env
+.env.*
+
+# Ignore editor and IDE files
+.vscode/
+.idea/
+.cursor/
+
+# Ignore test and coverage files
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ignore logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# Ignore uv and pip cache
+.uv/
+.cache/
+
+# Ignore Docker and Compose files (except Dockerfile)
+docker-compose.yaml
+.dockerignore
+
+# Ignore frontend build artifacts
+frontend/node_modules/
+frontend/.streamlit/
+
+# Ignore GCP and CI/CD config
+gcp/
+.github/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

@@ -166,7 +166,7 @@ cython_debug/
 *.iws
 
 # VS Code
-.vscode/
+#.vscode/
 *.code-workspace
 
 # Cursor
@@ -182,7 +182,7 @@ app.db
 .streamlit/secrets.toml
 
 # Docker
-.dockerignore
+#.dockerignore
 docker-compose.override.yml
 
 # Logs
@@ -267,8 +267,8 @@ tmp/
 temp/
 
 # Editor directories and files
-.vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
