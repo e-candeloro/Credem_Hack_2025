@@ -7,11 +7,24 @@ import httpx
 import streamlit as st
 
 # Environment variables for configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv(
+    "API_BASE_URL", "http://backend:8000"
+)  # Use Docker Compose service name for backend
 STREAMLIT_SERVER_PORT = int(os.getenv("STREAMLIT_SERVER_PORT", "8501"))
 STREAMLIT_SERVER_ADDRESS = os.getenv("STREAMLIT_SERVER_ADDRESS", "0.0.0.0")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+# Allow user to override API_BASE_URL from the sidebar in debug mode
+if DEBUG:
+    import streamlit as st
+
+    st.sidebar.markdown("---")
+    API_BASE_URL = st.sidebar.text_input(
+        "🔗 API Base URL (override)",
+        value=API_BASE_URL,
+        help="Set the backend API URL for local or Docker Compose testing.",
+    )
 
 # Page configuration
 st.set_page_config(
@@ -71,8 +84,17 @@ with st.sidebar:
     if st.button("🔄 Refresh Status"):
         st.rerun()
 
-    if st.button("📖 View API Docs"):
-        st.markdown(f"[Open API Documentation]({API_BASE_URL}/docs)")
+    st.markdown("---")
+    st.markdown("### API Documentation")
+    st.markdown(
+        f"- **Internal (Docker):** [`{API_BASE_URL}/docs`]({API_BASE_URL}/docs)"
+    )
+    st.markdown(
+        f"- **External (host):** [`http://localhost:8000/docs`](http://localhost:8000/docs)"
+    )
+    st.info(
+        "Use the 'External (host)' link in your browser. The 'Internal (Docker)' link is for container-to-container communication."
+    )
 
 # Main content
 st.markdown(
@@ -94,15 +116,7 @@ with tab1:
                 response = httpx.get(f"{API_BASE_URL}/api/v1/health", timeout=5.0)
                 if response.status_code == 200:
                     health_data = response.json()
-                    st.markdown(
-                        """
-                    <div class="status-card status-healthy">
-                        <h3>✅ API Status</h3>
-                        <p>Backend API is healthy and responding</p>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
+                    st.success("✅ API Status: Backend API is healthy and responding")
 
                     # Display metrics
                     with st.container():
@@ -114,50 +128,30 @@ with tab1:
                             "Environment", health_data.get("environment", "unknown")
                         )
                 else:
-                    st.markdown(
-                        """
-                    <div class="status-card status-unhealthy">
-                        <h3>❌ API Status</h3>
-                        <p>Backend API is not responding properly</p>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
+                    st.error("❌ API Status: Backend API is not responding properly")
             except Exception as e:
-                st.markdown(
-                    """
-                <div class="status-card status-unhealthy">
-                    <h3>❌ API Status</h3>
-                    <p>Cannot connect to backend API</p>
-                </div>
-                """,
-                    unsafe_allow_html=True,
-                )
+                st.error("❌ API Status: Cannot connect to backend API")
                 if DEBUG:
                     st.error(f"Error: {str(e)}")
 
     with col2:
-        st.markdown(
+        st.info(
             """
-        <div class="metric-card">
-            <h3>🚀 System</h3>
-            <p>AI HR System v1.0.0</p>
-            <p>FastAPI + Streamlit</p>
-        </div>
-        """,
-            unsafe_allow_html=True,
+**🚀 System**
+
+AI HR System v1.0.0
+FastAPI + Streamlit
+"""
         )
 
     with col3:
-        st.markdown(
+        st.info(
             """
-        <div class="metric-card">
-            <h3>🔧 Environment</h3>
-            <p>Development Mode</p>
-            <p>Docker Ready</p>
-        </div>
-        """,
-            unsafe_allow_html=True,
+**🔧 Environment**
+
+Development Mode
+Docker Ready
+"""
         )
 
 with tab2:

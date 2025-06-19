@@ -3,7 +3,8 @@ from functools import lru_cache
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 
 # Load .env file if it exists
 load_dotenv()
@@ -39,18 +40,17 @@ class Settings(BaseSettings):
 
     # CORS
     allowed_origins: list[str] = Field(
-        default=["http://localhost:8501", "http://localhost:3000"],
+        default=[
+            "http://localhost:8501",
+            "http://localhost:3000",
+            "http://backend:8000",
+            "http://ai-hr-backend:8000",
+        ],
         env="ALLOWED_ORIGINS",
     )
 
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
-
-    @validator("allowed_origins", pre=True)
-    def parse_allowed_origins(cls, v):
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
 
     @validator("debug", pre=True)
     def parse_debug(cls, v):

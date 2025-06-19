@@ -19,7 +19,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         timestamp=datetime.utcnow(),
-        version=settings.app_version,
+        version=settings.version,
         environment="development" if settings.debug else "production",
     )
 
@@ -64,7 +64,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
     return DetailedHealthResponse(
         status=overall_status,
         timestamp=datetime.utcnow(),
-        version=settings.app_version,
+        version=settings.version,
         environment="development" if settings.debug else "production",
         system_info=system_info,
         checks=checks,
