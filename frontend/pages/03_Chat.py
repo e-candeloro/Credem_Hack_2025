@@ -6,7 +6,7 @@ import httpx
 import streamlit as st
 
 # Environment variables for configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://backend:8000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 # Page configuration
 st.set_page_config(
@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS for chat interface
+# Custom CSS for chat interface with dark theme support
 st.markdown(
     """
 <style>
@@ -27,28 +27,32 @@ st.markdown(
         border-left: 4px solid;
     }
     .user-message {
-        background-color: #e3f2fd;
+        background-color: rgba(33, 150, 243, 0.1);
         border-left-color: #2196f3;
+        color: inherit;
     }
     .assistant-message {
-        background-color: #f3e5f5;
+        background-color: rgba(156, 39, 176, 0.1);
         border-left-color: #9c27b0;
+        color: inherit;
     }
     .system-message {
-        background-color: #fff3e0;
+        background-color: rgba(255, 152, 0, 0.1);
         border-left-color: #ff9800;
+        color: inherit;
     }
     .error-message {
-        background-color: #ffebee;
+        background-color: rgba(244, 67, 54, 0.1);
         border-left-color: #f44336;
+        color: inherit;
     }
     .chat-container {
         max-height: 600px;
         overflow-y: auto;
-        border: 1px solid #ddd;
+        border: 1px solid rgba(128, 128, 128, 0.2);
         border-radius: 0.5rem;
         padding: 1rem;
-        background-color: #fafafa;
+        background-color: rgba(128, 128, 128, 0.05);
     }
     .stTextInput > div > div > input {
         border-radius: 25px;
@@ -68,10 +72,12 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "current_mode" not in st.session_state:
     st.session_state.current_mode = "llm"
+if "message_sent" not in st.session_state:
+    st.session_state.message_sent = False
 
 
 def send_message_to_api(
-    message: str, mode: str, system_prompt: str = None
+    message: str, mode: str, system_prompt: str = "You are a helpful AI assistant."
 ) -> dict[str, Any]:
     """Send message to the appropriate API endpoint."""
     try:
@@ -100,7 +106,8 @@ def send_message_to_api(
                 return {"success": True, "response": result["output"]}
             else:
                 return {"success": False, "error": f"API Error: {response.status_code}"}
-
+        # Always return a value
+        return {"success": False, "error": "Unknown mode."}
     except httpx.TimeoutException:
         return {"success": False, "error": "Request timed out. Please try again."}
     except Exception as e:
@@ -176,14 +183,20 @@ with st.sidebar:
     # System prompt for LLM mode
     if mode == "llm":
         st.subheader("🤖 LLM Settings")
-        system_prompt = st.text_area(
-            "System Prompt",
-            value="You are a helpful AI assistant.",
-            height=100,
-            help="Customize the system prompt for the LLM",
+        default_prompt = "You are a helpful AI assistant."
+        current_prompt = str(st.session_state.get("system_prompt") or default_prompt)
+        system_prompt = (
+            st.text_area(
+                "System Prompt",
+                value=current_prompt,
+                height=100,
+                help="Customize the system prompt for the LLM",
+            )
+            or default_prompt
         )
+        st.session_state["system_prompt"] = system_prompt
     else:
-        system_prompt = None
+        system_prompt = "You are a helpful AI assistant."
         st.subheader("🛠️ Agent Settings")
         st.info(
             "Agent mode includes access to tools like calculator, search, and database queries."
@@ -198,6 +211,7 @@ with st.sidebar:
     with col1:
         if st.button("🗑️ Clear Chat", use_container_width=True):
             st.session_state.chat_history = []
+            st.session_state.message_sent = False
             st.rerun()
 
     with col2:
@@ -244,33 +258,35 @@ if st.session_state.chat_history:
 else:
     st.info("💡 Start a conversation by typing a message below!")
 
-# Input area
+# Input area using form to prevent infinite loops
 st.markdown("---")
-with st.container():
+with st.form("chat_form", clear_on_submit=True):
     col1, col2 = st.columns([4, 1])
 
     with col1:
         user_input = st.text_input(
             "Type your message here...",
-            key="user_input",
             placeholder="Ask me anything!",
             label_visibility="collapsed",
         )
 
     with col2:
-        send_button = st.button("Send", use_container_width=True)
+        send_button = st.form_submit_button("Send", use_container_width=True)
 
 # Handle message sending
-if (send_button or user_input) and user_input.strip():
+if send_button and user_input.strip():
     # Add user message to history
     timestamp = datetime.now().strftime("%H:%M:%S")
     st.session_state.chat_history.append(
         {"role": "user", "content": user_input.strip(), "timestamp": timestamp}
     )
 
-    # Send to API
+    # Send to API - ensure system_prompt is always a string
+    current_system_prompt = (
+        str(system_prompt) if system_prompt else "You are a helpful AI assistant."
+    )
     with st.spinner("🤖 Thinking..."):
-        result = send_message_to_api(user_input.strip(), mode, system_prompt)
+        result = send_message_to_api(user_input.strip(), mode, current_system_prompt)
 
     if result["success"]:
         # Add assistant response to history
@@ -291,8 +307,8 @@ if (send_button or user_input) and user_input.strip():
             }
         )
 
-    # Clear input and rerun to show new messages
-    st.session_state.user_input = ""
+    # Mark message as sent to prevent reprocessing
+    st.session_state.message_sent = True
     st.rerun()
 
 # Footer

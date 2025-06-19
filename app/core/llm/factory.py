@@ -42,7 +42,10 @@ def create_llm(config: LLMConfig) -> BaseChatModel:
         if not settings.llm_api_key:
             raise ValueError("Groq API key not configured")
         return ChatGroq(
-            model=config.model, temperature=config.temperature, **config.extra_kwargs
+            model=config.model,
+            temperature=config.temperature,
+            api_key=settings.llm_api_key,
+            **config.extra_kwargs,
         )
 
     elif config.vendor == LLMVendor.GOOGLE:

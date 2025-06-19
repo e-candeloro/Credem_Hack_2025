@@ -44,7 +44,7 @@ class AgentResponse(BaseModel):
     """Response model for agent interaction."""
 
     output: str = Field(..., description="The agent's response")
-    state: AgentState = Field(..., description="The current agent state")
+    state: dict[str, Any] = Field(..., description="The current agent state")
 
 
 @router.post("/chat", response_model=AgentResponse)
@@ -74,16 +74,61 @@ async def chat_with_agent(request: AgentRequest):
         result = agent.invoke({"messages": [dict(msg) for msg in request.messages]})
 
         # Extract the final response from messages
-        final_message = next(
-            (msg for msg in reversed(result["messages"]) if msg.type == "ai"), None
-        )
+        # Look for the last AI message in the response
+        final_message = None
+        if "messages" in result:
+            for msg in reversed(result["messages"]):
+                # Check different possible message type attributes
+                if hasattr(msg, "type") and msg.type == "ai":
+                    final_message = msg
+                    break
+                elif hasattr(msg, "__class__") and "AIMessage" in str(msg.__class__):
+                    final_message = msg
+                    break
+                elif (
+                    hasattr(msg, "content")
+                    and hasattr(msg, "role")
+                    and msg.role == "assistant"
+                ):
+                    final_message = msg
+                    break
+
+        # If no AI message found, try to get the last message with content
+        if not final_message and "messages" in result:
+            for msg in reversed(result["messages"]):
+                if hasattr(msg, "content") and msg.content:
+                    final_message = msg
+                    break
+
+        # Get the output content
+        if final_message and hasattr(final_message, "content"):
+            output = final_message.content
+        elif final_message and hasattr(final_message, "text"):
+            output = final_message.text
+        else:
+            # If no message found, try to get the last message from the result
+            if "messages" in result and result["messages"]:
+                last_msg = result["messages"][-1]
+                if hasattr(last_msg, "content"):
+                    output = last_msg.content
+                elif hasattr(last_msg, "text"):
+                    output = last_msg.text
+                else:
+                    output = str(last_msg)
+            else:
+                output = "No response generated"
 
         return AgentResponse(
-            output=final_message.content if final_message else "No response generated",
+            output=output,
             state=result,
         )
 
     except Exception as e:
+        # Log the full error for debugging
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.error(f"Agent error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
 
 

@@ -8,7 +8,8 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import create_react_agent
 from typing_extensions import TypedDict
 
-from app.core.llm import create_llm
+from app.core.config import settings
+from app.core.llm import LLMConfig, create_llm
 
 from .config import AgentConfig
 from .tools import get_tools
@@ -32,7 +33,13 @@ def create_agent(config: AgentConfig) -> Any:
         A configured LangGraph workflow
     """
     # Initialize the language model using the factory
-    llm = create_llm(config.llm_config)
+    # Use config.llm_config if provided, otherwise use default settings
+    if config.llm_config:
+        llm_config = LLMConfig(**config.llm_config)
+    else:
+        llm_config = LLMConfig(vendor=settings.llm_vendor, model=settings.llm_model)
+
+    llm = create_llm(llm_config)
 
     # Load the base prompt from file
     prompt_path = Path(__file__).parent / "base_prompt.txt"

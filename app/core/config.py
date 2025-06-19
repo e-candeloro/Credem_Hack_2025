@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     llm_vendor: LLMVendor = Field(default=LLMVendor.GROQ, env="LLM_VENDOR")
-    llm_model: str = Field(default="mixtral-8x7b-32768", env="LLM_MODEL")
+    llm_model: str = Field(default="llama3-70b-8192", env="LLM_MODEL")
     llm_api_key: str | None = Field(default=None, env="LLM_API_KEY")
     google_api_key: str | None = Field(default=None, env="GOOGLE_API_KEY")
     ollama_base_url: str = Field(
@@ -54,13 +54,8 @@ class Settings(BaseSettings):
     )
 
     # CORS
-    allowed_origins: list[str] = Field(
-        default=[
-            "http://localhost:8501",
-            "http://localhost:3000",
-            "http://backend:8000",
-            "http://ai-hr-backend:8000",
-        ],
+    allowed_origins: str | None = Field(
+        default="http://localhost:8501,http://localhost:3000,http://backend:8000,http://ai-hr-backend:8000",
         env="ALLOWED_ORIGINS",
     )
 
@@ -86,10 +81,21 @@ class Settings(BaseSettings):
             return LLMVendor(v.lower())
         return v
 
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        if not self.allowed_origins:
+            return []
+        return [
+            origin.strip()
+            for origin in self.allowed_origins.split(",")
+            if origin.strip()
+        ]
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        extra = "ignore"
 
 
 @lru_cache
