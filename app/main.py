@@ -1,97 +1,45 @@
 import logging
-from contextlib import asynccontextmanager
-from datetime import datetime
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from config import load_config
+from etl.pipeline import run_etl
+from exporter import zip_and_export
+from gcs_utils import download_from_bucket, upload_to_bucket
+from ocr.document_ai import process_documents
 
-from app.api.v1.endpoints import agent, health
-from app.core.config import settings
-
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan events."""
-    # Startup
-    logger.info(f"🚀 Starting {settings.app_name} v{settings.version}")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Debug mode: {settings.debug}")
-    yield
-    # Shutdown
-    logger.info(f"👋 Shutting down {settings.app_name}")
+def main():
+    """Main pipeline orchestration function."""
+    logger.info("Starting pipeline...")
 
+    # 1. Load Configuration
+    config = load_config()
 
-def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
-    app = FastAPI(
-        title=settings.app_name,
-        version=settings.version,
-        debug=settings.debug,
-        lifespan=lifespan,
-        docs_url="/docs" if settings.debug else None,
-        redoc_url="/redoc" if settings.debug else None,
-    )
+    # 2. Ingest: Download files from GCS
+    # This is commented out to prevent errors when running without GCS credentials
+    # In a real environment, you would uncomment this.
+    # local_files = download_from_bucket(config)
 
-    # Add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # Using placeholder local files for demonstration
+    # Loading the file
+    print("File loaded")
+    # 3. OCR/Classification: Process documents
+    extracted_data = process_documents()
 
-    # Include routers
-    app.include_router(health.router, prefix="/api/v1", tags=["health"])
-    app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
+    # 5. ETL: Process and transform data
+    processed_df = run_etl()
 
-    return app
+    # 6. Export: Zip results and upload to another GCS bucket
+    zip_path = zip_and_export()
 
+    # This is commented out for the same reason as the download step.
+    # upload_to_bucket(zip_path, config['EXPORT_BUCKET'])
 
-app = create_app()
-
-
-@app.get("/")
-async def root():
-    """Root endpoint with API information."""
-    return {
-        "app_name": settings.app_name,
-        "version": settings.version,
-        "environment": settings.environment,
-        "docs_url": "/docs" if settings.debug else None,
-        "health_check": "/api/v1/health",
-    }
-
-
-# Health check endpoint
-@app.get("/api/v1/health")
-async def health_check():
-    """Basic health check endpoint."""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow(),
-        "version": settings.version,
-        "environment": settings.environment,
-    }
-
-
-# Ping endpoint
-@app.get("/api/v1/ping")
-async def ping():
-    """Simple ping endpoint for load balancer health checks."""
-    return {"message": "pong", "timestamp": datetime.utcnow().isoformat()}
+    logger.info(f"Pipeline finished successfully. Output zip is at {zip_path}")
+    logger.info("In a real run, this zip would be uploaded to the export GCS bucket.")
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "app.main:app", host=settings.host, port=settings.port, reload=settings.debug
-    )
+    main()

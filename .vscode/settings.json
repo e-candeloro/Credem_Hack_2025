@@ -9,4 +9,10 @@
     "python.envFile": "${workspaceFolder}/.env",
     "python.terminal.activateEnvironment": true,
     "python.terminal.activateEnvInCurrentTerminal": true,
+    "cursorpyright.analysis.autoSearchPaths": true,
+    "cursorpyright.analysis.diagnosticMode": "workspace",
+    "cursorpyright.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "cursorpyright.analysis.typeCheckingMode": "basic",
 }

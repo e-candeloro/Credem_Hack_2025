@@ -3,12 +3,12 @@ import sys
 from datetime import datetime
 from typing import Any, Dict
 
+from core.config import settings
+from core.database import get_db
 from fastapi import APIRouter, Depends, HTTPException
+from schemas.health import DetailedHealthResponse, HealthResponse, SystemInfo
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-
-from app.core.config import settings
-from app.core.database import get_db
-from app.schemas.health import DetailedHealthResponse, HealthResponse, SystemInfo
 
 router = APIRouter()
 
@@ -49,7 +49,7 @@ async def detailed_health_check(db: Session = Depends(get_db)):
 
     # Test database connection
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         checks["database"] = "healthy"
     except Exception as e:
         checks["database"] = f"unhealthy: {str(e)}"

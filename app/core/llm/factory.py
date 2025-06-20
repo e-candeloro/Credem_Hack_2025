@@ -6,8 +6,9 @@ from langchain_community.chat_models import ChatOllama
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
+from pydantic import SecretStr
 
-from app.core.config import LLMVendor, settings
+from ..config import LLMVendor, settings
 
 
 class LLMConfig:
@@ -44,7 +45,7 @@ def create_llm(config: LLMConfig) -> BaseChatModel:
         return ChatGroq(
             model=config.model,
             temperature=config.temperature,
-            api_key=settings.llm_api_key,
+            api_key=SecretStr(settings.llm_api_key),
             **config.extra_kwargs,
         )
 

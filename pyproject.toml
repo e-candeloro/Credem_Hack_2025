@@ -31,6 +31,10 @@ dependencies = [
     "langchain-groq>=0.3.2",
     "langchain-google-genai>=2.1.5",
     "langchain-community>=0.3.25",
+    "google-cloud-storage",
+    "google-cloud-documentai",
+    "google-cloud-aiplatform",
+    "dotenv>=0.9.9",
 ]
 
 [project.optional-dependencies]
@@ -58,5 +62,6 @@ dev = [
     "httpx>=0.28.1",
     "isort>=6.0.1",
     "mypy>=1.16.1",
+    "pre-commit>=4.2.0",
     "pytest>=8.4.1",
 ]
