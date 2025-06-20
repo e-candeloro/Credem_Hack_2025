@@ -58,5 +58,6 @@ dev = [
     "httpx>=0.28.1",
     "isort>=6.0.1",
     "mypy>=1.16.1",
+    "pre-commit>=4.2.0",
     "pytest>=8.4.1",
 ]
