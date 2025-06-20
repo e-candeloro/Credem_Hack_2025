@@ -5,7 +5,7 @@ from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1.endpoints import health
+from app.api.v1.endpoints import agent, health
 from app.core.config import settings
 
 # Configure logging
@@ -50,6 +50,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(health.router, prefix="/api/v1", tags=["health"])
+    app.include_router(agent.router, prefix="/api/v1", tags=["agent"])
 
     return app
 

@@ -26,6 +26,11 @@ dependencies = [
     "python-dotenv",
     "pre-commit>=4.2.0",
     "requests>=2.32.4",
+    "langchain-core>=0.3.65",
+    "langgraph>=0.4.8",
+    "langchain-groq>=0.3.2",
+    "langchain-google-genai>=2.1.5",
+    "langchain-community>=0.3.25",
 ]
 
 [project.optional-dependencies]
@@ -44,4 +49,14 @@ dev = [
     "rich",
     "python-dateutil",
     "pytz"
+]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "flake8>=7.2.0",
+    "httpx>=0.28.1",
+    "isort>=6.0.1",
+    "mypy>=1.16.1",
+    "pytest>=8.4.1",
 ]
