@@ -8,9 +8,8 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import create_react_agent
 from typing_extensions import TypedDict
 
-from app.core.config import settings
-from app.core.llm import LLMConfig, create_llm
-
+from ..config import settings
+from ..llm import LLMConfig, create_llm
 from .config import AgentConfig
 from .tools import get_tools
 

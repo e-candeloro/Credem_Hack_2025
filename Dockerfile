@@ -1,26 +1,29 @@
+# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Set working directory
+# Set the working directory in the container
 WORKDIR /app
+ENV PYTHONPATH=/app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# --- Dependency Installation ---
+# This section is structured to maximize Docker cache efficiency.
+# First, install uv, our package manager.
+# This layer will be cached unless the base image changes.
+RUN pip install uv
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Next, copy only the dependency definition files.
+# This layer is only invalidated if you change your dependencies in pyproject.toml.
+COPY pyproject.toml uv.lock* ./
 
-# Copy application code
-COPY app/ ./app/
+# Install dependencies using uv pip install.
+# This creates a cached layer with all your dependencies installed.
+RUN uv pip install --system -e .
 
-# Expose port
-EXPOSE 8000
+# --- Application Code ---
+# Finally, copy your application code.
+# This is the most frequently changing part, so it comes last.
+# Now, when you change your code, only this layer and subsequent ones will be rebuilt.
+COPY app/ .
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
-
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Set the command to run your pipeline
+CMD ["python", "main.py"]
