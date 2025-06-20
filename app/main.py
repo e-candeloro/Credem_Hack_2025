@@ -17,16 +17,12 @@ def main():
     # 1. Load Configuration
     config = load_config()
 
-    # 2. Ingest: Download files from GCS
-    # This is commented out to prevent errors when running without GCS credentials
-    # In a real environment, you would uncomment this.
-    # local_files = download_from_bucket(config)
+    # 2. Download from GCS
+    local_files = download_from_bucket(config)
 
-    # Using placeholder local files for demonstration
-    # Loading the file
     print("File loaded")
     # 3. OCR/Classification: Process documents
-    extracted_data = process_documents()
+    extracted_data = process_documents(config)
 
     # 5. ETL: Process and transform data
     processed_df = run_etl()
