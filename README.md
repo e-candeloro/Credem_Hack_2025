@@ -1,65 +1,38 @@
-# AI HR System – Fullstack Hackathon Template
+# Credem Hack 2025 - AI Document Processing Pipeline
 
-Welcome! This is a modern, production-ready template for building AI-powered HR systems with a FastAPI backend and Streamlit frontend. It's designed for rapid hackathon development, local Docker use, and easy Google Cloud deployment.
-
+This project is a data processing pipeline built for the Credem Hackathon 2025. It leverages Google Cloud AI services, including Document AI and Gemini, to extract information from documents and process it through an ETL pipeline.
 ---
-
 ## 🚦 What is this?
-- **Backend:** FastAPI (Python 3.11) with AI/LLM integration
-- **Frontend:** Streamlit
-- **AI/LLM:** LangChain, LangGraph, Groq, Google AI, Ollama support
-- **Dev Experience:** VS Code Dev Container, pre-commit hooks, uv for Python deps
-- **Deployment:** Docker Compose (local), Google Cloud Run (prod)
-- **CI/CD:** GitHub Actions ready
-
+- **Core Engine:** Python 3.11
+- **AI/OCR:** Google Document AI, Google Gemini (via LangChain)
+- **Data Processing:** Pandas
+- **Dev Experience:** VS Code Dev Container, pre-commit hooks, `uv` for Python dependency management.
+- **Deployment:** Docker for containerization.
 ---
-
 ## 🏁 Quick Start with Docker
 
-### Option 1: Docker Compose (Recommended for Development)
+### 1. **Clone and Configure**
 ```bash
 # Clone the repository
 git clone https://github.com/e-candeloro/Credem_Hack_2025.git
 cd Credem_Hack_2025
-
-# Copy environment file
+# Copy environment file and add your credentials
 cp env.example .env
-
-# Start all services
-docker compose up -d --build
-
-# Check logs
-docker compose logs -f
-
-# Stop services
-docker compose down
 ```
-
-**Services available:**
-- Backend API: http://localhost:8000
-- Frontend: http://localhost:8501
-- API Documentation: http://localhost:8000/docs
-
-### Option 2: Standalone Docker Container
+### 2. **Build and Run**
 ```bash
 # Build the Docker image
-docker build -t ai-hr-system .
+docker build -t credem-hack-2025 .
 
-# Run the container
-docker run -it --env-file .env ai-hr-system
-
-# Or run in detached mode
-docker run -d --env-file .env -p 8000:8000 ai-hr-system
+# Run the pipeline inside the container
+docker run --env-file .env credem-hack-2025
 ```
-
 ---
-
-## 🛠️ Development Setup
+## 🛠️ Local Development Setup
 
 ### Prerequisites
 - Python 3.11+
-- [uv](https://astral.sh/docs/uv/installation/) (recommended package manager)
-- Docker and Docker Compose (for containerized development)
+- [uv](https://astral.sh/docs/uv/installation/) (the recommended package manager)
 
 ### 1. **Clone and Bootstrap**
 ```bash
@@ -68,21 +41,9 @@ cd Credem_Hack_2025
 cp env.example .env
 ```
 
-### 2. **Install uv** (if not using the Dev Container)
+### 2. **Set Up Python Environment with `uv`**
 ```bash
-# Linux/macOS
-curl -Ls https://astral.sh/uv/install.sh | sh
-
-# Or using pipx
-pipx install uv
-
-# Verify installation
-uv --version
-```
-
-### 3. **Set Up Python Environment**
-```bash
-# Install all dependencies
+# Install all dependencies from pyproject.toml
 uv sync
 
 # Activate the virtual environment
@@ -91,199 +52,101 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 ```
 
-### 4. **Install pre-commit hooks**
+### 3. **Install pre-commit hooks**
+This ensures code quality and formatting standards are met before committing.
 ```bash
+# Install pre-commit into the virtual environment
 uv pip install pre-commit
+# Set up the git hooks
 pre-commit install
-
-# Run all checks manually
+# Run all checks manually on all files
 pre-commit run --all-files
 ```
 
-### 5. **Environment Configuration**
-Edit `.env` file with your configuration:
-```bash
-# Required for AI features
-LLM_MODEL=placeholder
+### 4. **Environment Configuration**
+Edit the `.env` file with your configuration. You will need Google Cloud credentials for the pipeline to work with real data.
+```env
+# Google Cloud Settings
+PROJECT_ID="your_gcp_project_id"
+GOOGLE_API_KEY="your_google_api_key"
+# Document AI Processor details
+DOCAI_LOCATION="eu" # e.g. "us" or "eu"
+DOCAI_PROCESSOR_ID="your_processor_id"
 
-# Optional: Google Cloud settings
-GOOGLE_API_KEY=your_google_api_key_here
-PROJECT_ID=your_gcp_project_id
+# GCS Buckets for file I/O
+INPUT_BUCKET="your_input_bucket"
+OUTPUT_BUCKET="your_output_bucket"
 ```
 
-### 6. **Run Locally (Development Mode)**
-
-#### Backend Only
+### 5. **Run the Pipeline Locally**
+Execute the main script to run the entire pipeline.
 ```bash
-# Using uv
-uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Or using Python directly
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python app/main.py
 ```
-
-#### Frontend Only
-```bash
-# Navigate to frontend directory (if it exists)
-cd frontend
-uv run streamlit run Home.py --server.port 8501 --server.address 0.0.0.0
-```
-
-#### Full Stack (Docker Compose)
-```bash
-docker compose up -d --build
-```
-
 ---
-
-## 🗂️ Project Structure
-```
-├── app/                    # FastAPI backend application
-│   ├── api/               # API endpoints and routes
-│   │   └── v1/
-│   │       └── endpoints/ # API endpoint modules
-│   ├── core/              # Core application modules
-│   │   ├── agent/         # AI agent implementation
-│   │   ├── llm/           # LLM factory and configuration
-│   │   ├── config.py      # Application settings
-│   │   └── database.py    # Database configuration
-│   ├── etl/               # ETL pipeline modules
-│   ├── ocr/               # Document processing
-│   ├── schemas/           # Pydantic models
-│   ├── tests/             # Backend tests
-│   ├── config.py          # Configuration loading
-│   ├── gcs_utils.py       # Google Cloud Storage utilities
-│   ├── exporter.py        # Data export utilities
-│   └── main.py            # FastAPI application entry point
-├── data/                  # Data files (gitignored)
-├── documents/             # Documentation and guides
-├── media/                 # Media assets
-├── notebooks/             # Jupyter notebooks for prototyping
-├── tests/                 # Integration tests
-├── Dockerfile             # Backend Docker configuration
-├── docker-compose.yaml    # Multi-service Docker setup
-├── env.example            # Environment variables template
-├── pyproject.toml         # Python project configuration
-├── requirements.txt       # Legacy requirements (for compatibility)
-└── README.md              # This file
-```
-
----
-
-## 🤖 AI/LLM Features
-
-### Supported LLM Providers
-- **Groq** (recommended for speed)
-- **Google AI** (Gemini models)
-- **Ollama** (local models)
-
-### Configuration
-Set your preferred LLM in `.env`:
-```bash
-LLM_VENDOR=groq                    # groq, google, or ollama
-LLM_MODEL=llama3-70b-8192         # Model name
-LLM_API_KEY=your_api_key_here     # API key for the provider
-```
-
-### Available AI Tools
-- **Search**: DuckDuckGo web search
-- **Wikipedia**: Wikipedia article search
-- **Calculator**: Mathematical expression evaluation
-- **Database Query**: Placeholder for future database integration
-
----
-
 ## 🧪 Testing
-
+To ensure the application is working correctly, run the test suite.
 ### Run Tests
 ```bash
 # Using uv
 uv run pytest
 
-# Or using Python directly
+# Or using Python directly from the activated venv
 python -m pytest
 
-# Run with coverage
+# Run with coverage report
 uv run pytest --cov=app
 ```
-
-### Integration Tests
-```bash
-uv run pytest tests/integration/
-```
-
 ---
-
-## 🚀 Deployment
-
-### Local Docker Deployment
-```bash
-# Build and run with Docker Compose
-docker compose up -d --build
-
-# Or build standalone image
-docker build -t ai-hr-system .
-docker run -d --env-file .env -p 8000:8000 ai-hr-system
+## 🗂️ Project Structure
 ```
-
-### Google Cloud Deployment
-See [DEPLOYMENT_GCLOUD.md](documents/DEPLOYMENT_GCLOUD.md) for detailed instructions.
-
+├── app/                    # Main application source code
+│   ├── etl/               # ETL pipeline modules
+│   │   └── pipeline.py
+│   ├── ocr/               # Document processing with Document AI
+│   │   └── document_ai.py
+│   ├── schemas/           # Pydantic models (if any)
+│   ├── tests/             # Unit and integration tests for the app
+│   ├── config.py          # Configuration loading
+│   ├── exporter.py        # Data export utilities
+│   ├── gcs_utils.py       # Google Cloud Storage utilities
+│   └── main.py            # Main pipeline entry point
+├── data/                   # Local data files (gitignored)
+├── documents/              # Project documentation and specifications
+├── notebooks/              # Jupyter notebooks for exploration
+├── tests/                  # Higher-level integration tests
+├── Dockerfile              # Docker configuration for the application
+├── docker-compose.yaml     # Docker Compose for multi-service setup (if needed)
+├── env.example             # Environment variables template
+├── pyproject.toml          # Python project configuration and dependencies (for uv)
+└── README.md               # This file
+```
 ---
-
 ## 🔐 Environment Variables
 
 ### Required Variables
-```bash
-# LLM Configuration
-LLM_API_KEY=your_api_key_here
-LLM_VENDOR=groq
-LLM_MODEL=llama3-70b-8192
+These must be set in your `.env` file for the application to run.
+```env
+# Google Cloud
+PROJECT_ID="your_gcp_project_id"
+GOOGLE_API_KEY="your_google_api_key"
+DOCAI_LOCATION="eu"
+DOCAI_PROCESSOR_ID="your_processor_id"
 
-# Application Settings
-APP_NAME="AI HR System"
-DEBUG=false
-ENVIRONMENT=development
+# GCS Buckets
+INPUT_BUCKET="your_input_bucket"
+OUTPUT_BUCKET="your_output_bucket"
 ```
-
-### Optional Variables
-```bash
-# Google Cloud (for production features)
-PROJECT_ID=your_gcp_project_id
-GOOGLE_API_KEY=your_google_api_key
-INPUT_BUCKET=your_input_bucket
-OUTPUT_BUCKET=your_output_bucket
-
-# Server Configuration
-HOST=0.0.0.0
-PORT=8000
-```
-
 ---
-
 ## 🤝 Contributing
 
 ### Development Workflow
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes
-4. Run tests: `uv run pytest`
-5. Run pre-commit: `pre-commit run --all-files`
-6. Commit your changes: `git commit -m "Add your feature"`
-7. Push to your fork: `git push origin feature/your-feature`
-8. Create a Pull Request
-
-### Code Quality
-- Use pre-commit hooks for automatic formatting and linting
-- Follow PEP 8 style guidelines
-- Write tests for new features
-- Update documentation as needed
+1.  Create a feature branch: `git checkout -b feature/your-feature`
+2.  Make your changes.
+3.  Ensure tests pass: `uv run pytest`
+4.  Run pre-commit hooks to format and lint: `pre-commit run --all-files`
+5.  Commit your changes: `git commit -m "feat: Add your amazing feature"`
+6.  Push to your branch and create a Pull Request.
 
 ---
-
-## 📄 License
-This project is created for hackathon purposes. See LICENSE for details.
-
----
-
 **Happy Hacking! 🚀**

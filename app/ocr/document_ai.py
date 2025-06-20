@@ -3,20 +3,19 @@ from google.cloud import documentai_v1 as documentai
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import AIMessage, HumanMessage
 
+# class GeminiChatModel(BaseChatModel):
+#     def __init__(self, model_name: str, api_key: str):
+#         self.model = genai.GenerativeModel(model_name=model_name)
+#         genai.configure(api_key=api_key)
 
-class GeminiChatModel(BaseChatModel):
-    def __init__(self, model_name: str, api_key: str):
-        self.model = genai.GenerativeModel(model_name=model_name)
-        genai.configure(api_key=api_key)
-
-    def _generate(self, messages, stop=None):
-        prompt = "\n".join([m.content for m in messages if isinstance(m, HumanMessage)])
-        response = self.model.generate_content(prompt)
-        return AIMessage(content=response.text)
+#     def _generate(self, messages, stop=None):
+#         prompt = "\n".join([m.content for m in messages if isinstance(m, HumanMessage)])
+#         response = self.model.generate_content(prompt)
+#         return AIMessage(content=response.text)
 
 
-# Usage:
-llm = GeminiChatModel(model_name="gemini-pro", api_key="your_api_key")
+# # Usage:
+# llm = GeminiChatModel(model_name="gemini-pro", api_key="your_api_key")
 
 # Now you can plug this into LangGraph as a node.
 

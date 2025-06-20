@@ -26,4 +26,4 @@ RUN uv pip install --system -e .
 COPY app/ .
 
 # Set the command to run your pipeline
-CMD ["python", "main.py"]
+ENTRYPOINT ["python", "main.py"]
