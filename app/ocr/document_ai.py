@@ -1,12 +1,19 @@
 import os
+from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 import google.generativeai as genai
+import pandas as pd
 from google.cloud import documentai_v1 as documentai
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import AIMessage, HumanMessage
 from pydantic import BaseModel, Field
+from tqdm import tqdm
+from utils.file_formatting import get_mime_type
+from utils.parsing import parse_json_response
+from utils.reading import load_file_as_bytes
+from vertexai.preview.generative_models import GenerativeModel, Part
 
 
 class DocumentField(BaseModel):
@@ -44,7 +51,7 @@ class DocumentProcessingResult(BaseModel):
         self.total_processed += 1
 
 
-def process_document_with_docai(
+def process_document_docAI(
     project_id: str, location: str, processor_id: str, file_path: str
 ):
     """Processes a document using Document AI."""
@@ -58,12 +65,7 @@ def process_document_with_docai(
         image_content = image_file.read()
 
     # Create a RawDocument object
-    if file_path.lower().endswith(".tiff") or file_path.lower().endswith(".tif"):
-        mime_type = "image/tiff"
-    elif file_path.lower().endswith(".pdf"):
-        mime_type = "application/pdf"
-    else:
-        raise ValueError(f"Unsupported file type: {file_path}")
+    mime_type = get_mime_type(file_path)
     raw_document = documentai.RawDocument(
         content=image_content, mime_type=mime_type
     )  # Adjust mime_type as needed
@@ -83,24 +85,10 @@ def process_document_with_docai(
         for entity in document.entities:
             print(f"  Type: {entity.type_}, Mention Text: {entity.mention_text}")
 
-    document_dict = {}
-    for page in document.pages:
-        for form_field in page.form_fields:
-            field_name = (
-                form_field.field_name.text_anchor.content
-                if form_field.field_name.text_anchor
-                else "N/A"
-            )
-            field_value = (
-                form_field.field_value.text_anchor.content
-                if form_field.field_value.text_anchor
-                else "N/A"
-            )
-            document_dict[field_name] = field_value
-    return document_dict
+    return document.text
 
 
-def process_documents(config, tmp_folder: str = "tmp/") -> DocumentProcessingResult:
+def process_documents_docAI(config, tmp_folder: str = "tmp/"):
     """
     Process all documents in the tmp/ folder using Document AI.
 
@@ -108,14 +96,12 @@ def process_documents(config, tmp_folder: str = "tmp/") -> DocumentProcessingRes
     Returns:
         DocumentProcessingResult containing all processed documents
     """
-    import time
 
-    start_time = time.time()
     project_id: str = config["PROJECT_ID"]
     location: str = config["LOCATION"]
     processor_id: str = config["PROCESSOR_ID"]
 
-    result = DocumentProcessingResult()
+    result = []
 
     # Check if tmp folder exists
     if not os.path.exists(tmp_folder):
@@ -140,62 +126,197 @@ def process_documents(config, tmp_folder: str = "tmp/") -> DocumentProcessingRes
     print(f"Found {len(files)} files to process")
 
     # Process each file
-    for filename in files:
-        file_path = os.path.join(tmp_folder, filename)
+    for index, filename in tqdm(enumerate(files)):
         if filename.endswith(".csv"):
             continue
         try:
-            print(f"Processing {filename}...")
-
             # Process document with Document AI
-            extracted_fields = process_document_with_docai(
+            extracted_fields = process_document_docAI(
                 project_id=project_id,
                 location=location,
                 processor_id=processor_id,
-                file_path=file_path,
+                file_path=os.path.join(tmp_folder, filename),
             )
 
             # Create ProcessedDocument instance
-            processed_doc = ProcessedDocument(
-                filename=filename,
-                fields=extracted_fields,
+            processed_doc = namedtuple("ProcessedDocument", ["filename", "fields"])(
+                filename, extracted_fields
             )
 
             # Add to result
-            result.add_document(filename, processed_doc)
-
-            print(f"Successfully processed {filename}")
+            result.append(processed_doc)
 
         except Exception as e:
-            print(f"Error processing {filename}: {str(e)}")
-            # Create error document
-            error_doc = ProcessedDocument(
-                filename=filename,
-                fields={"error": str(e)},
-            )
-            result.add_document(filename, error_doc)
-            for filename in files:
-                file_path = os.path.join(tmp_folder, filename)
-                extracted_fields = process_document_with_docai(
-                    project_id=project_id,
-                    location=location,
-                    processor_id=processor_id,
-                    file_path=file_path,
-                )
-
-    for filename in files:
-        file_path = os.path.join(tmp_folder, filename)
-        extracted_fields = process_document_with_docai(
-            project_id=project_id,
-            location=location,
-            processor_id=processor_id,
-            file_path=file_path,
-        )
-    # Calculate processing time
-    result.processing_time = time.time() - start_time
-
-    print(
-        f"Processing complete. Processed {result.total_processed} documents in {result.processing_time:.2f} seconds"
-    )
+            continue
 
     return result
+
+
+def process_document_with_gemini(name, content):
+    model = GenerativeModel("gemini-2.0-flash-001")
+    mime = get_mime_type(name)
+    if mime == "application/octet-stream":
+        return {
+            k: "Unsupported Type"
+            for k in ["File Name", "Nome", "Cognome", "Data", "Cluster"]
+        }
+    try:
+        part = Part.from_data(data=content, mime_type=mime)
+        prompt = """
+        Classifica ogni documento fornito, che può essere in formato TIFF, PDF o altri formati di immagine, assegnandolo a uno dei seguenti cluster specifici:
+
+            Provvedimenti a favore, Supervisione Mifid, Flessibilità orarie, Polizza sanitaria, Formazione, Fringe benefits, Assunzione matricola, Primo impiego, Fondo pensione, Nulla osta assunzione, Destinazione TFR, Nomina titolarità, Assegnazione ruolo, Part-time, Cessazione, Proroga TD, Provvedimenti disciplinari, Trasferimento, Lettera assunzione, Titolarità temporanee, Trasformazione TI, Proposta di assunzione. Se non sei sicuro al 100% della categoria, assegna "Nessun cluster".
+
+            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome e Data (intesa come la data di redazione presente nel documento).
+
+            Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
+
+            # Steps
+
+            1. Analizza il contenuto del documento fornito (TIFF, PDF o altro formato immagine).
+            2. Identifica ed estrai con precisione Nome, Cognome e la Data di redazione dal testo.
+            3. Valuta il documento per determinarne la classificazione, confrontandolo con i cluster elencati.
+            4. Se la corrispondenza con un cluster è incerta, assegna "Nessun cluster".
+
+            # Output Format
+
+            Restituisci solo una risposta strutturata in JSON con i seguenti campi, senza commenti o spiegazioni aggiuntive:
+            ```json
+            {{
+            "File Name": "[Nome del file]",
+            "Nome": "[Nome estratto]",
+            "Cognome": "[Cognome estratto]",
+            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'Non Trovata']",
+            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']"
+            }}
+            ```
+        """
+        res = model.generate_content([part, prompt])
+        return parse_json_response(res.text, name)
+    except:
+        return {k: "Error" for k in ["File Name", "Nome", "Cognome", "Data", "Cluster"]}
+
+
+def all_process_documents_docAI_gemini(config, tmp_folder: str = "tmp/"):
+    model = GenerativeModel("gemini-2.0-flash-001")
+    docs = process_documents_docAI(config, tmp_folder)
+    results = []
+    for index, (filename, document) in enumerate(docs):
+        part = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
+        prompt = """
+        Classifica ogni documento fornito, che ti verrà fornito sotto forma di testo, assegnandolo a uno dei seguenti cluster specifici:
+
+            Provvedimenti a favore, Supervisione Mifid, Flessibilità orarie, Polizza sanitaria, Formazione, Fringe benefits, Assunzione matricola, Primo impiego, Fondo pensione, Nulla osta assunzione, Destinazione TFR, Nomina titolarità, Assegnazione ruolo, Part-time, Cessazione, Proroga TD, Provvedimenti disciplinari, Trasferimento, Lettera assunzione, Titolarità temporanee, Trasformazione TI, Proposta di assunzione. Se non sei sicuro al 100% della categoria, assegna "Nessun cluster".
+
+            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome e Data (intesa come la data di redazione presente nel documento).
+
+            Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
+
+            # Steps
+
+            1. Analizza il contenuto del documento fornito (TIFF, PDF o altro formato immagine).
+            2. Identifica ed estrai con precisione Nome, Cognome e la Data di redazione dal testo.
+            3. Valuta il documento per determinarne la classificazione, confrontandolo con i cluster elencati.
+            4. Se la corrispondenza con un cluster è incerta, assegna "Nessun cluster".
+
+            # Output Format
+
+            Restituisci solo una risposta strutturata in JSON con i seguenti campi, senza commenti o spiegazioni aggiuntive:
+            ```json
+            {{
+            "Nome": "[Nome estratto]",
+            "Cognome": "[Cognome estratto]",
+            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'Non Trovata']",
+            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']"
+            }}
+            ```
+        """
+        res = model.generate_content([part, prompt])
+        results.append(parse_json_response(res.text, filename))
+    return pd.DataFrame(results)
+
+
+def all_process_documents_gemini(config, tmp_folder: str = "tmp/"):
+    if not os.path.exists(tmp_folder):
+        raise ValueError(f"Warning: {tmp_folder} directory does not exist")
+
+    # Get list of files in tmp folder
+    try:
+        files = [
+            f
+            for f in os.listdir(tmp_folder)
+            if os.path.isfile(os.path.join(tmp_folder, f))
+        ]
+    except PermissionError:
+        print(f"Error: Permission denied accessing {tmp_folder}")
+        return ""
+
+    if not files:
+        print(f"No files found in {tmp_folder}")
+        return ""
+
+    print(f"Found {len(files)} files to process")
+    results = []
+    # Process each file
+    for filename in files:
+        file_path = os.path.join(tmp_folder, filename)
+
+        try:
+            content = load_file_as_bytes(file_path)
+            info = process_document_with_gemini(filename, content)
+            info["File Name"] = filename
+            results.append(info)
+        except Exception as e:  # Catch specific exception for better debugging
+            results.append(
+                {
+                    "File Name": filename,
+                    **{
+                        k: f"Download Error: {e}"
+                        for k in ["Nome", "Cognome", "Data", "Cluster"]
+                    },
+                }
+            )
+    return pd.DataFrame(results)
+
+
+def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
+    model = GenerativeModel("gemini-2.0-flash-001")
+    docs = process_documents_docAI(config, tmp_folder)
+    results = []
+    for index, (filename, document) in tqdm(enumerate(docs)):
+        byte_content = load_file_as_bytes(os.path.join(tmp_folder, filename))
+        byte_part = Part.from_data(data=byte_content, mime_type=get_mime_type(filename))
+        part = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
+        prompt = """
+        I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
+        Classifica ogni documento fornito, assegnandolo a uno dei seguenti cluster specifici:
+
+            Provvedimenti a favore, Supervisione Mifid, Flessibilità orarie, Polizza sanitaria, Formazione, Fringe benefits, Assunzione matricola, Primo impiego, Fondo pensione, Nulla osta assunzione, Destinazione TFR, Nomina titolarità, Assegnazione ruolo, Part-time, Cessazione, Proroga TD, Provvedimenti disciplinari, Trasferimento, Lettera assunzione, Titolarità temporanee, Trasformazione TI, Proposta di assunzione. Se non sei sicuro al 100% della categoria, assegna "Nessun cluster".
+
+            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome e Data (intesa come la data di redazione presente nel documento).
+
+            Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
+
+            # Steps
+
+            1. Analizza il contenuto del documento fornito (TIFF, PDF o altro formato immagine).
+            2. Identifica ed estrai con precisione Nome, Cognome e la Data di redazione dal testo.
+            3. Valuta il documento per determinarne la classificazione, confrontandolo con i cluster elencati.
+            4. Se la corrispondenza con un cluster è incerta, assegna "Nessun cluster".
+
+            # Output Format
+
+            Restituisci solo una risposta strutturata in JSON con i seguenti campi, senza commenti o spiegazioni aggiuntive:
+            ```json
+            {{
+            "File_Name": "[Nome del file]",
+            "Nome": "[Nome estratto]",
+            "Cognome": "[Cognome estratto]",
+            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'Non Trovata']",
+            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']"
+            }}
+            ```
+        """
+        res = model.generate_content([part, prompt, byte_part])
+        results.append(parse_json_response(res.text, filename))
+    return pd.DataFrame(results)
