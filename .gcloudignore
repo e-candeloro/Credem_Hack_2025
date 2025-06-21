@@ -64,7 +64,9 @@ logs/
 .local/
 .uv/
 .cache/
-
+solution.zip
+zips/
+tmp/
 # Git
 .git/
 .gitignore

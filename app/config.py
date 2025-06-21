@@ -9,6 +9,7 @@ def load_config():
     return {
         "DEBUG": os.getenv("DEBUG"),
         "PROJECT_ID": os.getenv("PROJECT_ID"),
+        "RUN_ID": os.getenv("RUN_ID"),
         "LOCATION": os.getenv("LOCATION"),
         "INPUT_BUCKET": os.getenv("INPUT_BUCKET"),
         "OUTPUT_BUCKET": os.getenv("OUTPUT_BUCKET"),
