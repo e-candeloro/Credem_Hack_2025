@@ -147,7 +147,10 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
             result.append(processed_doc)
 
         except Exception as e:
-            continue
+            processed_doc = namedtuple("ProcessedDocument", ["filename", "fields"])(
+                filename,
+                "Nome, cognome e data non trovati. Metti ERRORE in tutti i campi",
+            )
 
     return result
 
@@ -291,9 +294,11 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
         I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
         Classifica ogni documento fornito, assegnandolo a uno dei seguenti cluster specifici:
 
+            Cluster:
             Provvedimenti a favore, Supervisione Mifid, Flessibilità orarie, Polizza sanitaria, Formazione, Fringe benefits, Assunzione matricola, Primo impiego, Fondo pensione, Nulla osta assunzione, Destinazione TFR, Nomina titolarità, Assegnazione ruolo, Part-time, Cessazione, Proroga TD, Provvedimenti disciplinari, Trasferimento, Lettera assunzione, Titolarità temporanee, Trasformazione TI, Proposta di assunzione. Se non sei sicuro al 100% della categoria, assegna "Nessun cluster".
 
-            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome e Data (intesa come la data di redazione presente nel documento).
+            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome, Data (intesa come la data di redazione presente nel documento) e Country (intesa come il paese di redazione del documento, nome in inglese).
+            Se non è possibile estrarre il nome, il cognome o la data, restituisci "ERRORE" al posto del valore.
 
             Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
 
@@ -312,10 +317,22 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
             "File_Name": "[Nome del file]",
             "Nome": "[Nome estratto]",
             "Cognome": "[Cognome estratto]",
-            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'Non Trovata']",
-            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']"
+            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'ERRORE']",
+            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']",
+            "Country": "[Paese di redazione del documento, nome in inglese o 'ERRORE']"
             }}
+
             ```
+            Esempio:
+            ```json
+            {{
+            "File_Name": "nome_file.pdf",
+            "Nome": "Mario",
+            "Cognome": "ERRORE",
+            "Data": "2002-01-04",
+            "Cluster": "Nessun cluster",
+            "Country": "Italy"
+            }}
         """
         res = model.generate_content([part, prompt, byte_part])
         results.append(parse_json_response(res.text, filename))

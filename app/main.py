@@ -3,7 +3,8 @@ import logging
 import pandas as pd
 from config import load_config
 from etl.pipeline import run_etl
-from exporter import zip_and_export
+
+# from exporter import zip_and_export
 from gcs_utils import download_from_bucket, upload_to_bucket
 from ocr.document_ai import all_process_documents_OVERPOWERED
 
@@ -21,13 +22,14 @@ def main():
     print(config)
 
     # 2. Download from GCS
-    # local_files = download_from_bucket(config) #TODO ASYNC PARALLEL DOWNLOAD
+    local_files = download_from_bucket(config)  # TODO ASYNC PARALLEL DOWNLOAD
 
     print("File loaded")
     # 3. OCR/Classification: Process documents
     extracted_data = all_process_documents_OVERPOWERED(config)
 
     extracted_data = pd.read_csv("data/extracted/extracted_data.csv")
+
     # 5. ETL: Process and transform data
     processed_string = run_etl(extracted_data, config)
     # processed_df.to_csv("final_data.csv", index=False)

@@ -77,29 +77,22 @@ python -m pytest
 uv run pytest --cov=app
 ```
 ---
-## 🗂️ Project Structure
+
+## 🚀 Deployment
+
+### Local Docker Deployment
+```bash
+# Build and run with Docker Compose
+docker compose up -d --build
+
+# Or build standalone image
+docker build -t ai-hr-system .
+docker run -d --env-file .env -p 8000:8000 ai-hr-system
 ```
-├── app/                    # Main application source code
-│   ├── etl/               # ETL pipeline modules
-│   │   └── pipeline.py
-│   ├── ocr/               # Document processing with Document AI
-│   │   └── document_ai.py
-│   ├── schemas/           # Pydantic models (if any)
-│   ├── tests/             # Unit and integration tests for the app
-│   ├── config.py          # Configuration loading
-│   ├── exporter.py        # Data export utilities
-│   ├── gcs_utils.py       # Google Cloud Storage utilities
-│   └── main.py            # Main pipeline entry point
-├── data/                   # Local data files (gitignored)
-├── documents/              # Project documentation and specifications
-├── notebooks/              # Jupyter notebooks for exploration
-├── tests/                  # Higher-level integration tests
-├── Dockerfile              # Docker configuration for the application
-├── docker-compose.yaml     # Docker Compose for multi-service setup (if needed)
-├── env.example             # Environment variables template
-├── pyproject.toml          # Python project configuration and dependencies (for uv)
-└── README.md               # This file
-```
+
+### Google Cloud Deployment
+See [DEPLOYMENT_GCLOUD.md](documents/DEPLOYMENT_GCLOUD.md) for detailed instructions.
+
 ---
 
 ## 📄 License
