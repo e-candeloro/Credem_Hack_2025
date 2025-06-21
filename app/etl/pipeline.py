@@ -88,11 +88,20 @@ def combine_clean_data(df_results, df_personale):
     ]
     df_section_1 = pd.DataFrame(columns=cols_section_1)
 
-    cols_section_2 = cols_section_1 + [
+    cols_section_2 = [
+        "FILENAME",
+        "METADATA",
+        "DocumentAttachment",
+        "PersonNumber",
+        "DocumentType",
+        "Country",
+        "DocumentCode",
         "DataTypeCode",
         "URLorTextorFileName",
         "Title",
         "File",
+        "SourceSystemOwner",
+        "SourceSystemId",
     ]
     df_section_2 = pd.DataFrame(columns=cols_section_2)
 
@@ -140,6 +149,7 @@ def combine_clean_data(df_results, df_personale):
         date_to = ""
         source_system_owner = "PEOPLE"
         source_system_id = document_code
+        document_attachment = "DocumentAttachment"
 
         # aggiungiamo i dati per la sezione 1
         # non usare append
@@ -168,20 +178,17 @@ def combine_clean_data(df_results, df_personale):
         df_section_2.loc[len(df_section_2)] = [
             file_name,
             metadata,
-            documents_of_records,
+            document_attachment,
             person_number,
             document_type,
             country,
             document_code,
-            document_name,
-            date_from,
-            date_to,
-            source_system_owner,
-            source_system_id,
             data_type_code,
             url_or_text_or_file_name,
             title,
             file,
+            source_system_owner,
+            source_system_id,
         ]
 
     return df_section_1, df_section_2

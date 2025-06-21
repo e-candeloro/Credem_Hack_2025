@@ -104,6 +104,8 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
     # Check if tmp folder exists
     if not os.path.exists(tmp_folder):
         print(f"Warning: {tmp_folder} directory does not exist")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Absolute path to tmp folder: {os.path.abspath(tmp_folder)}")
         return result
 
     # Get list of files in tmp folder
@@ -115,13 +117,20 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
         ]
     except PermissionError:
         print(f"Error: Permission denied accessing {tmp_folder}")
+        print(f"Current working directory: {os.getcwd()}")
         return result
 
     if not files:
         print(f"No files found in {tmp_folder}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Absolute path to tmp folder: {os.path.abspath(tmp_folder)}")
+        print(
+            f"Contents of tmp folder: {os.listdir(tmp_folder) if os.path.exists(tmp_folder) else 'Directory does not exist'}"
+        )
         return result
 
     print(f"Found {len(files)} files to process")
+    print(f"Files: {files}")
 
     # Process each file
     for index, filename in tqdm(enumerate(files)):
@@ -237,51 +246,8 @@ def all_process_documents_docAI_gemini(config, tmp_folder: str = "tmp/"):
     return pd.DataFrame(results)
 
 
-def all_process_documents_gemini(config, tmp_folder: str = "tmp/"):
-    if not os.path.exists(tmp_folder):
-        raise ValueError(f"Warning: {tmp_folder} directory does not exist")
-
-    # Get list of files in tmp folder
-    try:
-        files = [
-            f
-            for f in os.listdir(tmp_folder)
-            if os.path.isfile(os.path.join(tmp_folder, f))
-        ]
-    except PermissionError:
-        print(f"Error: Permission denied accessing {tmp_folder}")
-        return ""
-
-    if not files:
-        print(f"No files found in {tmp_folder}")
-        return ""
-
-    print(f"Found {len(files)} files to process")
-    results = []
-    # Process each file
-    for filename in files:
-        file_path = os.path.join(tmp_folder, filename)
-
-        try:
-            content = load_file_as_bytes(file_path)
-            info = process_document_with_gemini(filename, content)
-            info["File Name"] = filename
-            results.append(info)
-        except Exception as e:  # Catch specific exception for better debugging
-            results.append(
-                {
-                    "File Name": filename,
-                    **{
-                        k: f"Download Error: {e}"
-                        for k in ["Nome", "Cognome", "Data", "Cluster"]
-                    },
-                }
-            )
-    return pd.DataFrame(results)
-
-
 def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
-    model = GenerativeModel("gemini-2.0-flash-001")
+    model = GenerativeModel("gemini-2.5-pro")
     docs = process_documents_docAI(config, tmp_folder)
     results = []
     df_cluster = pd.read_csv(config["CLUSTERS_PATH"])
@@ -289,51 +255,63 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
     for index, (filename, document) in tqdm(enumerate(docs)):
         byte_content = load_file_as_bytes(os.path.join(tmp_folder, filename))
         byte_part = Part.from_data(data=byte_content, mime_type=get_mime_type(filename))
-        part = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
-        prompt = f"""I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
-        Classifica ogni documento fornito, assegnandolo a uno dei seguenti cluster specifici:
+        message = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
+        # 2. Format the list as a bulleted string for the prompt
 
-            Cluster (esempi in  lista python, considera i soli valori):
-            {cluster_classes}
-            Rispetta assolutamente i nomi dei cluster, non inventarti nomi. Se sei insicuro assegna "Nessun cluster".
+    cluster_list_str = "- " + "\n- ".join(cluster_classes)
 
-            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome, Data (intesa come la data di redazione presente nel documento) e Country (intesa come il paese di redazione del documento, nome in inglese).
-            Se non è possibile estrarre il nome, il cognome o la data, restituisci "ERRORE" al posto del valore.
+    # 3. Create the prompt using an f-string and inject the cluster list
+    prompt = f"""
+        ## ROLE
+        You are an expert document processing AI. Your task is to perform classification and data extraction with high accuracy.
 
-            Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
+        ## TASK
+        Analyze the provided document and perform two actions:
+        1.  **Classify** the document into one of the predefined categories.
+        2.  **Extract** key pieces of information from the text.
 
-            # Steps
+        ## 1. CATEGORIES FOR CLASSIFICATION
+        The document must be assigned to ONE of the following categories. The assignment must be based on the primary purpose of the document, not just a casual mention. If the document's purpose does not clearly match any category, you MUST use "Nessun cluster".
 
-            1. Analizza il contenuto del documento fornito (TIFF, PDF o altro formato immagine).
-            2. Identifica ed estrai con precisione Nome, Cognome e la Data di redazione dal testo.
-            3. Valuta il documento per determinarne la classificazione, confrontandolo con i cluster elencati.
-            4. Se la corrispondenza con un cluster è incerta, assegna "Nessun cluster".
+        {cluster_list_str}
 
-            # Output Format
+        ## 2. DATA EXTRACTION RULES
+        Extract the following fields according to these specific rules:
 
-            Restituisci solo una risposta strutturata in JSON con i seguenti campi, senza commenti o spiegazioni aggiuntive:
-            ```json
-            {{
-            "File_Name": "[Nome del file]",
-            "Nome": "[Nome estratto]",
-            "Cognome": "[Cognome estratto]",
-            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'ERRORE']",
-            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']",
-            "Country": "[Paese di redazione del documento, nome in inglese o 'ERRORE']"
-            }}
+        - **"Nome"**: Extract the first name of the primary subject or recipient of the document.
+        - **"Cognome"**: Extract the last name of the primary subject or recipient of the document.
+        - **"Data"**: Extract the main date of the document (e.g., signing date, issue date), usually found in the header or near the signature. It MUST be formatted as `YYYY-MM-DD`.
+        - **(Optional) "Country"**: Extract the country where the document was issued. Provide the name in English.
 
-            ```
-            Esempio:
-            ```json
-            {{
-            "File_Name": "nome_file.pdf",
-            "Nome": "Mario",
-            "Cognome": "ERRORE",
-            "Data": "2002-01-04",
-            "Cluster": "Nessun cluster",
-            "Country": "Italy"
-            }}
+        **IMPORTANT**: If any field's value cannot be reliably extracted from the document text, you MUST return the exact string "ERRORE" for that field.
+
+        ## 3. OUTPUT FORMAT
+        Your entire response must be a single, valid JSON object. Do NOT include any other text, explanations, or markdown indicators like ```json.
+
+        ### Example of a perfect response:
+        ```json
+        {{
+        "File_Name": "proposta_assunzione_rossi.pdf",
+        "Nome": "Mario",
+        "Cognome": "Rossi",
+        "Data": "2023-10-26",
+        "Cluster": "Proposta di assunzione",
+        "Country": "Italy"
+        }}
+        ```
+
+        ### Example of a response with errors:
+        ```json
+        {{
+        "File_Name": "documento_incompleto.tiff",
+        "Nome": "ERRORE",
+        "Cognome": "Bianchi",
+        "Data": "2024-05-12",
+        "Cluster": "Nessun cluster",
+        "Country": "ERRORE"
+        }}
+        ```
         """
-        res = model.generate_content([part, prompt, byte_part])
-        results.append(parse_json_response(res.text, filename))
+    res = model.generate_content([prompt, message, byte_part])
+    results.append(parse_json_response(res.text, filename))
     return pd.DataFrame(results)

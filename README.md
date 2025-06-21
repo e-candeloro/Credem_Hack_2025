@@ -4,7 +4,7 @@ This project is a data processing pipeline built for the Credem Hackathon 2025. 
 ---
 ## 🚦 What is this?
 - **Core Engine:** Python 3.11
-- **AI/OCR:** Google Document AI, Google Gemini (via LangChain)
+- **AI/OCR:** Google Document AI + Google Gemini via GCP API
 - **Data Processing:** Pandas
 - **Dev Experience:** VS Code Dev Container, pre-commit hooks, `uv` for Python dependency management.
 - **Deployment:** Docker for containerization.
@@ -25,7 +25,7 @@ cp env.example .env
 docker build -t credem-hack-2025 .
 
 # Run the pipeline inside the container
-docker run --env-file .env credem-hack-2025
+docker run credem-hack-2025
 ```
 ---
 ## 🛠️ Local Development Setup
@@ -62,36 +62,6 @@ pre-commit install
 # Run all checks manually on all files
 pre-commit run --all-files
 ```
-
-## 🧪 Testing
-To ensure the application is working correctly, run the test suite.
-### Run Tests
-```bash
-# Using uv
-uv run pytest
-
-# Or using Python directly from the activated venv
-python -m pytest
-
-# Run with coverage report
-uv run pytest --cov=app
-```
----
-
-## 🚀 Deployment
-
-### Local Docker Deployment
-```bash
-# Build and run with Docker Compose
-docker compose up -d --build
-
-# Or build standalone image
-docker build -t ai-hr-system .
-docker run -d --env-file .env -p 8000:8000 ai-hr-system
-```
-
-### Google Cloud Deployment
-See [DEPLOYMENT_GCLOUD.md](documents/DEPLOYMENT_GCLOUD.md) for detailed instructions.
 
 ---
 
