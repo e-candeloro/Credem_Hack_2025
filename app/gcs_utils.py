@@ -6,6 +6,9 @@ from google.cloud import storage
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+GCS_INPUT_PREFIX = "input/"
+GCS_DATA_PREFIX = "data/"
+
 
 def download_from_bucket(config: dict) -> list[str]:
     """Downloads files from a GCS bucket to a local directory."""
@@ -20,7 +23,13 @@ def download_from_bucket(config: dict) -> list[str]:
     )
 
     downloaded_files = []
-    for blob in bucket.list_blobs():
+    exts = (".pdf", ".tif", ".tiff", ".png", ".jpeg", ".jpg")
+    blobs = [
+        b
+        for b in bucket.list_blobs(prefix=GCS_INPUT_PREFIX)
+        if b.name.lower().endswith(exts)
+    ]
+    for blob in blobs:
         # --- IMPORTANT: Skip blobs that are GCS directory markers ---
         if blob.name.endswith("/"):
             logger.info(f"Skipping directory marker: {blob.name}")
