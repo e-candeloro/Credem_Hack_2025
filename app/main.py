@@ -25,7 +25,7 @@ def main():
 
     print("File loaded")
     # 3. OCR/Classification: Process documents
-    # extracted_data = all_process_documents_OVERPOWERED(config)
+    extracted_data = all_process_documents_OVERPOWERED(config)
 
     extracted_data = pd.read_csv("data/extracted/extracted_data.csv")
     # 5. ETL: Process and transform data
