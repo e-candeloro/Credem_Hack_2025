@@ -3,6 +3,10 @@ repos:
     rev: 0.7.13
     hooks:
       - id: uv-export
+        name: Export prod deps
+        args:
+          - --no-dev
+          - --output-file=requirements.txt
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0

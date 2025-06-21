@@ -5,32 +5,14 @@ description = "AI HR System Hackathon Project"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi",
-    "uvicorn",
     "pydantic",
     "pydantic-settings",
-    "sqlalchemy",
-    "alembic",
-    "httpx",
-    "streamlit",
-    "plotly",
     "pandas",
     "numpy",
-    "openai",
-    "langchain",
-    "langchain-openai",
-    "scikit-learn",
     "python-jose[cryptography]",
     "passlib[bcrypt]",
     "python-multipart",
     "python-dotenv",
-    "pre-commit>=4.2.0",
-    "requests>=2.32.4",
-    "langchain-core>=0.3.65",
-    "langgraph>=0.4.8",
-    "langchain-groq>=0.3.2",
-    "langchain-google-genai>=2.0.0,<2.1.0",
-    "langchain-community>=0.3.25",
     "google-cloud-storage",
     "google-cloud-documentai",
     "google-cloud-aiplatform",
@@ -57,7 +39,8 @@ dev = [
     "structlog",
     "rich",
     "python-dateutil",
-    "pytz"
+    "pytz",
+    "pre-commit",
 ]
 
 [dependency-groups]
