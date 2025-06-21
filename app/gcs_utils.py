@@ -12,8 +12,7 @@ def download_from_bucket(config: dict) -> list[str]:
     storage_client = storage.Client()
     bucket = storage_client.bucket(config["INPUT_BUCKET"])
 
-    # Create a local temp directory if it doesn't exist
-    local_tmp_dir = "/tmp/pipeline_input"
+    local_tmp_dir = "tmp/"
     os.makedirs(local_tmp_dir, exist_ok=True)
 
     logger.info(
@@ -22,10 +21,23 @@ def download_from_bucket(config: dict) -> list[str]:
 
     downloaded_files = []
     for blob in bucket.list_blobs():
+        # --- IMPORTANT: Skip blobs that are GCS directory markers ---
+        if blob.name.endswith("/"):
+            logger.info(f"Skipping directory marker: {blob.name}")
+            continue
+
         file_path = os.path.join(local_tmp_dir, os.path.basename(blob.name))
-        blob.download_to_filename(file_path)
-        downloaded_files.append(file_path)
-        logger.info(f"Downloaded {blob.name}")
+        try:
+            blob.download_to_filename(file_path)
+            downloaded_files.append(file_path)
+            logger.info(f"Downloaded {blob.name} to {file_path}")
+        except Exception as e:
+            logger.error(f"Error downloading {blob.name} to {file_path}: {e}")
+            # Depending on your needs, you might want to:
+            # - continue (skip to next blob)
+            # - raise (stop execution)
+            # - log and ignore
+            raise  # Re-raising for now to ensure errors are caught during development
 
     return downloaded_files
 
