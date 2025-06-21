@@ -295,6 +295,7 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
 
             Cluster (esempi in  lista python, considera i soli valori):
             {cluster_classes}
+            Rispetta assolutamente i nomi dei cluster, non inventarti nomi. Se sei insicuro assegna "Nessun cluster".
 
             Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome, Data (intesa come la data di redazione presente nel documento) e Country (intesa come il paese di redazione del documento, nome in inglese).
             Se non è possibile estrarre il nome, il cognome o la data, restituisci "ERRORE" al posto del valore.
