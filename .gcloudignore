@@ -71,7 +71,6 @@ README.md
 docs/
 
 # Docker
-Dockerfile
 docker-compose.yaml
 .dockerignore
 
