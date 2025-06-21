@@ -8,8 +8,8 @@ def load_config():
     load_dotenv()
     return {
         "PROJECT_ID": os.getenv("PROJECT_ID"),
-        "GCP_REGION": os.getenv("GCP_REGION"),
+        "LOCATION": os.getenv("LOCATION"),
         "INPUT_BUCKET": os.getenv("INPUT_BUCKET"),
         "OUTPUT_BUCKET": os.getenv("OUTPUT_BUCKET"),
-        "DOCAI_PROCESSOR_ID": os.getenv("DOCAI_PROCESSOR_ID"),
+        "PROCESSOR_ID": os.getenv("PROCESSOR_ID"),
     }
