@@ -290,7 +290,7 @@ def all_process_documents_gemini(config, tmp_folder: str = "tmp/"):
 
 
 def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
-    model = GenerativeModel("gemini-2.0-flash-001")
+    model = GenerativeModel("gemini-2.5-flash")
     docs = process_documents_docAI(config, tmp_folder)
     results = []
     df_cluster = pd.read_csv(config["CLUSTERS_PATH"])

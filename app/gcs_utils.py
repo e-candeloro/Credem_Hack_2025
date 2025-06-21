@@ -26,11 +26,7 @@ def download_from_bucket(config: dict) -> list[str]:
 
     downloaded_files = []
     exts = (".pdf", ".tif", ".tiff", ".png", ".jpeg", ".jpg")
-    blobs = [
-        b
-        for b in bucket.list_blobs(prefix=GCS_INPUT_PREFIX)
-        if b.name.lower().endswith(exts)
-    ]
+    blobs = [b for b in bucket.list_blobs() if b.name.lower().endswith(exts)]
 
     logger.info(f"Found {len(blobs)} files in bucket with extensions {exts}")
 
