@@ -286,16 +286,17 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
     model = GenerativeModel("gemini-2.0-flash-001")
     docs = process_documents_docAI(config, tmp_folder)
     results = []
+    df_cluster = pd.read_csv(config["CLUSTER_PATH"])
+    cluster_classes = str(df_cluster["Cluster"].unique().tolist())
     for index, (filename, document) in tqdm(enumerate(docs)):
         byte_content = load_file_as_bytes(os.path.join(tmp_folder, filename))
         byte_part = Part.from_data(data=byte_content, mime_type=get_mime_type(filename))
         part = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
-        prompt = """
-        I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
+        prompt = f"""I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
         Classifica ogni documento fornito, assegnandolo a uno dei seguenti cluster specifici:
 
-            Cluster:
-            Provvedimenti a favore, Supervisione Mifid, Flessibilità orarie, Polizza sanitaria, Formazione, Fringe benefits, Assunzione matricola, Primo impiego, Fondo pensione, Nulla osta assunzione, Destinazione TFR, Nomina titolarità, Assegnazione ruolo, Part-time, Cessazione, Proroga TD, Provvedimenti disciplinari, Trasferimento, Lettera assunzione, Titolarità temporanee, Trasformazione TI, Proposta di assunzione. Se non sei sicuro al 100% della categoria, assegna "Nessun cluster".
+            Cluster (esempi in  lista python, considera i soli valori):
+            {cluster_classes}
 
             Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome, Data (intesa come la data di redazione presente nel documento) e Country (intesa come il paese di redazione del documento, nome in inglese).
             Se non è possibile estrarre il nome, il cognome o la data, restituisci "ERRORE" al posto del valore.

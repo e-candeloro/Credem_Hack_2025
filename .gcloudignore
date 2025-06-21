@@ -65,6 +65,7 @@ logs/
 .uv/
 .cache/
 solution.zip
+DocumentsOfRecord.dat
 zips/
 tmp/
 # Git
