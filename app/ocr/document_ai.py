@@ -6,8 +6,6 @@ from typing import Any, Dict, Optional
 import google.generativeai as genai
 import pandas as pd
 from google.cloud import documentai_v1 as documentai
-from langchain.chat_models.base import BaseChatModel
-from langchain.schema import AIMessage, HumanMessage
 from pydantic import BaseModel, Field
 from tqdm import tqdm
 from utils.file_formatting import get_mime_type

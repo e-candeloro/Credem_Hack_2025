@@ -120,7 +120,7 @@ def combine_clean_data(df_results, df_personale):
                 person_number = row_personale["Person Number"]
                 document_type = row_results.get("Cluster", "Nessun cluster")
                 country = row_results.get("Country", "")
-                document_name = f"{nome_res} {cognome_res}".strip().upper()
+                document_name = f"{cognome_res} {nome_res}".strip().upper()
 
         if not match:
             # non match
