@@ -24,6 +24,7 @@ MANIFEST
 
 # Virtual environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -32,6 +33,7 @@ env.bak/
 venv.bak/
 
 # Testing
+tests/
 .pytest_cache/
 .coverage
 htmlcov/
@@ -61,18 +63,18 @@ logs/
 # Local development
 .local/
 .uv/
+.cache/
 
 # Git
 .git/
 .gitignore
 
-# Documentation
+# Documentation (keep deployment docs)
 README.md
 docs/
-
-# Docker
-docker-compose.yaml
-.dockerignore
+*.md
+!DEPLOYMENT_GCLOUD.md
+!TROUBLESHOOTING.md
 
 # CI/CD
 .github/
@@ -100,3 +102,24 @@ secrets/
 
 # Data (ignored)
 data/
+
+# Development containers
+.devcontainer/
+
+# Type checking cache
+.mypy_cache/
+
+# Python version file
+.python-version
+
+# Lock files (not needed for deployment)
+uv.lock
+
+# Notebooks (development only)
+notebooks/
+
+# Media files (not needed for deployment)
+media/
+
+# Large PDF files (not needed for deployment)
+*.pdf

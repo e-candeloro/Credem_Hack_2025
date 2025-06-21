@@ -17,6 +17,8 @@ def main():
     # 1. Load Configuration
     config = load_config()
 
+    print(config)
+
     # 2. Download from GCS
     local_files = download_from_bucket(config)
 
