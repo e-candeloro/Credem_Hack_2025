@@ -284,7 +284,7 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
     model = GenerativeModel("gemini-2.0-flash-001")
     docs = process_documents_docAI(config, tmp_folder)
     results = []
-    df_cluster = pd.read_csv(config["CLUSTER_PATH"])
+    df_cluster = pd.read_csv(config["CLUSTERS_PATH"])
     cluster_classes = str(df_cluster["Cluster"].unique().tolist())
     for index, (filename, document) in tqdm(enumerate(docs)):
         byte_content = load_file_as_bytes(os.path.join(tmp_folder, filename))

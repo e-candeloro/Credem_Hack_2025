@@ -1,38 +1,31 @@
-# ────────────────────────────────────────────────
-# 1. Base image
-# ────────────────────────────────────────────────
-FROM python:3.11-slim
+# ───────────────────────────────────────────────────────────────
+# 1. Base image: uv + Python 3.11 already installed
+#    (tags: {version}-python3.11-bookworm-slim, python3.11-bookworm-slim, …)
+# ───────────────────────────────────────────────────────────────
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim
 
-# Work inside /app
+# ───────────────────────────────────────────────────────────────
+# 2. Runtime setup
+# ───────────────────────────────────────────────────────────────
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    # Tell uv to install straight into the system interpreter
+    UV_SYSTEM_PYTHON=1
 
-# ────────────────────────────────────────────────
-# 2. Install uv (and tiny curl helper)
-#    – the script drops a single statically-linked
-#      binary into /usr/local/bin/uv
-# ────────────────────────────────────────────────
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
- && curl -Ls https://astral.sh/uv/install.sh | sh \
- && apt-get purge -y --auto-remove curl \
- && rm -rf /var/lib/apt/lists/*
-
-# ────────────────────────────────────────────────
-# 3. Dependency layer (maximises Docker cache)
-#    – uv pip install works 100 % drop-in for pip
-#      Use --system to install into the image’s
-#      site-packages instead of creating a venv
-# ────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
+# 3. Dependency layer  (maximises Docker cache)
+#    – uv’s pip shim is a 100 % drop-in for pip
+# ───────────────────────────────────────────────────────────────
 COPY requirements.txt .
 RUN uv pip install --system --requirement requirements.txt --no-cache-dir
 
-# ────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # 4. Application code
-# ────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 COPY app/ .
 
-# ────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 # 5. Entrypoint
-# ────────────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
 ENTRYPOINT ["python", "main.py"]
