@@ -21,6 +21,8 @@ def download_from_bucket(config: dict) -> list[str]:
     logger.info(
         f"Downloading files from gs://{config['INPUT_BUCKET']} to {local_tmp_dir}..."
     )
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info(f"Absolute path to tmp directory: {os.path.abspath(local_tmp_dir)}")
 
     downloaded_files = []
     exts = (".pdf", ".tif", ".tiff", ".png", ".jpeg", ".jpg")
@@ -29,6 +31,9 @@ def download_from_bucket(config: dict) -> list[str]:
         for b in bucket.list_blobs(prefix=GCS_INPUT_PREFIX)
         if b.name.lower().endswith(exts)
     ]
+
+    logger.info(f"Found {len(blobs)} files in bucket with extensions {exts}")
+
     for blob in blobs:
         # --- IMPORTANT: Skip blobs that are GCS directory markers ---
         if blob.name.endswith("/"):
@@ -48,6 +53,7 @@ def download_from_bucket(config: dict) -> list[str]:
             # - log and ignore
             raise  # Re-raising for now to ensure errors are caught during development
 
+    logger.info(f"Successfully downloaded {len(downloaded_files)} files")
     return downloaded_files
 
 

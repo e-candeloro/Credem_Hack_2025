@@ -15,7 +15,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 # ───────────────────────────────────────────────────────────────
 # 3. Dependency layer  (maximises Docker cache)
-#    – uv’s pip shim is a 100 % drop-in for pip
+#    – uv's pip shim is a 100 % drop-in for pip
 # ───────────────────────────────────────────────────────────────
 COPY requirements.txt .
 RUN uv pip install --system --requirement requirements.txt --no-cache-dir
@@ -26,6 +26,11 @@ RUN uv pip install --system --requirement requirements.txt --no-cache-dir
 COPY app/ .
 
 # ───────────────────────────────────────────────────────────────
-# 5. Entrypoint
+# 5. Create necessary directories and set permissions
+# ───────────────────────────────────────────────────────────────
+RUN mkdir -p tmp && chmod 755 tmp
+
+# ───────────────────────────────────────────────────────────────
+# 7. Entrypoint
 # ───────────────────────────────────────────────────────────────
 ENTRYPOINT ["python", "main.py"]

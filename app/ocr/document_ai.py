@@ -104,6 +104,8 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
     # Check if tmp folder exists
     if not os.path.exists(tmp_folder):
         print(f"Warning: {tmp_folder} directory does not exist")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Absolute path to tmp folder: {os.path.abspath(tmp_folder)}")
         return result
 
     # Get list of files in tmp folder
@@ -115,13 +117,20 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
         ]
     except PermissionError:
         print(f"Error: Permission denied accessing {tmp_folder}")
+        print(f"Current working directory: {os.getcwd()}")
         return result
 
     if not files:
         print(f"No files found in {tmp_folder}")
+        print(f"Current working directory: {os.getcwd()}")
+        print(f"Absolute path to tmp folder: {os.path.abspath(tmp_folder)}")
+        print(
+            f"Contents of tmp folder: {os.listdir(tmp_folder) if os.path.exists(tmp_folder) else 'Directory does not exist'}"
+        )
         return result
 
     print(f"Found {len(files)} files to process")
+    print(f"Files: {files}")
 
     # Process each file
     for index, filename in tqdm(enumerate(files)):
