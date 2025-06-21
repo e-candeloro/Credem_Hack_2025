@@ -19,7 +19,7 @@ def main():
     config = load_config()
 
     # 2. Download from GCS
-    # local_files = download_from_bucket(config)  # TODO ASYNC PARALLEL DOWNLOAD
+    local_files = download_from_bucket(config)  # TODO ASYNC PARALLEL DOWNLOAD
 
     print("File loaded")
     # 3. OCR/Classification: Process documents
