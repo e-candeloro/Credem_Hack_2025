@@ -63,27 +63,6 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-### 4. **Environment Configuration**
-Edit the `.env` file with your configuration. You will need Google Cloud credentials for the pipeline to work with real data.
-```env
-# Google Cloud Settings
-PROJECT_ID="your_gcp_project_id"
-GOOGLE_API_KEY="your_google_api_key"
-# Document AI Processor details
-DOCAI_LOCATION="eu" # e.g. "us" or "eu"
-DOCAI_PROCESSOR_ID="your_processor_id"
-
-# GCS Buckets for file I/O
-INPUT_BUCKET="your_input_bucket"
-OUTPUT_BUCKET="your_output_bucket"
-```
-
-### 5. **Run the Pipeline Locally**
-Execute the main script to run the entire pipeline.
-```bash
-python app/main.py
-```
----
 ## 🧪 Testing
 To ensure the application is working correctly, run the test suite.
 ### Run Tests
@@ -122,31 +101,10 @@ uv run pytest --cov=app
 └── README.md               # This file
 ```
 ---
-## 🔐 Environment Variables
 
-### Required Variables
-These must be set in your `.env` file for the application to run.
-```env
-# Google Cloud
-PROJECT_ID="your_gcp_project_id"
-GOOGLE_API_KEY="your_google_api_key"
-DOCAI_LOCATION="eu"
-DOCAI_PROCESSOR_ID="your_processor_id"
-
-# GCS Buckets
-INPUT_BUCKET="your_input_bucket"
-OUTPUT_BUCKET="your_output_bucket"
-```
----
-## 🤝 Contributing
-
-### Development Workflow
-1.  Create a feature branch: `git checkout -b feature/your-feature`
-2.  Make your changes.
-3.  Ensure tests pass: `uv run pytest`
-4.  Run pre-commit hooks to format and lint: `pre-commit run --all-files`
-5.  Commit your changes: `git commit -m "feat: Add your amazing feature"`
-6.  Push to your branch and create a Pull Request.
+## 📄 License
+This project is created for hackathon purposes. See LICENSE for details.
 
 ---
+
 **Happy Hacking! 🚀**
