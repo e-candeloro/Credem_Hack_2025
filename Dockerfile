@@ -1,29 +1,31 @@
-# Use an official Python runtime as a parent image
+# ─────────────────────────────────────────────────────────────
+# 1. Base image
+# ─────────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-# Set the working directory in the container
+# Work inside /app
 WORKDIR /app
-ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
-# --- Dependency Installation ---
-# This section is structured to maximize Docker cache efficiency.
-# First, install uv, our package manager.
-# This layer will be cached unless the base image changes.
-RUN pip install uv
+# ─────────────────────────────────────────────────────────────
+# 2. Install OS packages (optional, uncomment if you need them)
+# RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+# ─────────────────────────────────────────────────────────────
 
-# Next, copy only the dependency definition files.
-# This layer is only invalidated if you change your dependencies in pyproject.toml.
-COPY pyproject.toml uv.lock* ./
+# ─────────────────────────────────────────────────────────────
+# 3. Dependency layer
+#    – copy requirements.txt first to maximise Docker cache
+# ─────────────────────────────────────────────────────────────
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install dependencies using uv pip install.
-# This creates a cached layer with all your dependencies installed.
-RUN uv pip install --system -e .
-
-# --- Application Code ---
-# Finally, copy your application code.
-# This is the most frequently changing part, so it comes last.
-# Now, when you change your code, only this layer and subsequent ones will be rebuilt.
+# ─────────────────────────────────────────────────────────────
+# 4. Application code
+# ─────────────────────────────────────────────────────────────
 COPY app/ .
 
-# Set the command to run your pipeline
-CMD ["python", "main.py"]
+# ─────────────────────────────────────────────────────────────
+# 5. Entrypoint
+# ─────────────────────────────────────────────────────────────
+ENTRYPOINT ["python", "main.py"]

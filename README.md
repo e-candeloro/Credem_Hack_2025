@@ -1,65 +1,38 @@
-# AI HR System – Fullstack Hackathon Template
+# Credem Hack 2025 - AI Document Processing Pipeline
 
-Welcome! This is a modern, production-ready template for building AI-powered HR systems with a FastAPI backend and Streamlit frontend. It's designed for rapid hackathon development, local Docker use, and easy Google Cloud deployment.
-
+This project is a data processing pipeline built for the Credem Hackathon 2025. It leverages Google Cloud AI services, including Document AI and Gemini, to extract information from documents and process it through an ETL pipeline.
 ---
-
 ## 🚦 What is this?
-- **Backend:** FastAPI (Python 3.11) with AI/LLM integration
-- **Frontend:** Streamlit
-- **AI/LLM:** LangChain, LangGraph, Groq, Google AI, Ollama support
-- **Dev Experience:** VS Code Dev Container, pre-commit hooks, uv for Python deps
-- **Deployment:** Docker Compose (local), Google Cloud Run (prod)
-- **CI/CD:** GitHub Actions ready
-
+- **Core Engine:** Python 3.11
+- **AI/OCR:** Google Document AI, Google Gemini (via LangChain)
+- **Data Processing:** Pandas
+- **Dev Experience:** VS Code Dev Container, pre-commit hooks, `uv` for Python dependency management.
+- **Deployment:** Docker for containerization.
 ---
-
 ## 🏁 Quick Start with Docker
 
-### Option 1: Docker Compose (Recommended for Development)
+### 1. **Clone and Configure**
 ```bash
 # Clone the repository
 git clone https://github.com/e-candeloro/Credem_Hack_2025.git
 cd Credem_Hack_2025
-
-# Copy environment file
+# Copy environment file and add your credentials
 cp env.example .env
-
-# Start all services
-docker compose up -d --build
-
-# Check logs
-docker compose logs -f
-
-# Stop services
-docker compose down
 ```
-
-**Services available:**
-- Backend API: http://localhost:8000
-- Frontend: http://localhost:8501
-- API Documentation: http://localhost:8000/docs
-
-### Option 2: Standalone Docker Container
+### 2. **Build and Run**
 ```bash
 # Build the Docker image
-docker build -t ai-hr-system .
+docker build -t credem-hack-2025 .
 
-# Run the container
-docker run -it --env-file .env ai-hr-system
-
-# Or run in detached mode
-docker run -d --env-file .env -p 8000:8000 ai-hr-system
+# Run the pipeline inside the container
+docker run --env-file .env credem-hack-2025
 ```
-
 ---
-
-## 🛠️ Development Setup
+## 🛠️ Local Development Setup
 
 ### Prerequisites
 - Python 3.11+
-- [uv](https://astral.sh/docs/uv/installation/) (recommended package manager)
-- Docker and Docker Compose (for containerized development)
+- [uv](https://astral.sh/docs/uv/installation/) (the recommended package manager)
 
 ### 1. **Clone and Bootstrap**
 ```bash
@@ -68,21 +41,9 @@ cd Credem_Hack_2025
 cp env.example .env
 ```
 
-### 2. **Install uv** (if not using the Dev Container)
+### 2. **Set Up Python Environment with `uv`**
 ```bash
-# Linux/macOS
-curl -Ls https://astral.sh/uv/install.sh | sh
-
-# Or using pipx
-pipx install uv
-
-# Verify installation
-uv --version
-```
-
-### 3. **Set Up Python Environment**
-```bash
-# Install all dependencies
+# Install all dependencies from pyproject.toml
 uv sync
 
 # Activate the virtual environment
@@ -91,34 +52,30 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 ```
 
-### 4. **Install pre-commit hooks**
+### 3. **Install pre-commit hooks**
+This ensures code quality and formatting standards are met before committing.
 ```bash
+# Install pre-commit into the virtual environment
 uv pip install pre-commit
+# Set up the git hooks
 pre-commit install
-
-# Run all checks manually
+# Run all checks manually on all files
 pre-commit run --all-files
 ```
 
 ## 🧪 Testing
-
+To ensure the application is working correctly, run the test suite.
 ### Run Tests
 ```bash
 # Using uv
 uv run pytest
 
-# Or using Python directly
+# Or using Python directly from the activated venv
 python -m pytest
 
-# Run with coverage
+# Run with coverage report
 uv run pytest --cov=app
 ```
-
-### Integration Tests
-```bash
-uv run pytest tests/integration/
-```
-
 ---
 
 ## 🚀 Deployment
