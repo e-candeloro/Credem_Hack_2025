@@ -224,7 +224,12 @@ def run_etl(df_results, config, eval=False):
     csv_string = build_csv_string(df_sec_1, df_sec_2)
 
     # save the csv string
-    with open("tmp/processed/DocumentsOfRecord.dat", "w") as f:
+    with open(
+        "tmp/processed/DocumentsOfRecord.dat",
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as f:
         f.write(csv_string)
 
     return csv_string
