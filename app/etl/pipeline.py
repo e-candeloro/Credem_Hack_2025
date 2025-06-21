@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import Union
 
@@ -8,154 +9,70 @@ from utils.reading import read_csv_from_gcs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-PLACEHOLDERS = {
-    "Nome": "NONAME",
-    "Cognome": "NOLASTNAME",
-    "Data": "NODATE",
-}
 
-
-def _is_ph(value: str, bad={"NONAME", "NOLASTNAME", "NODATE", "ERRORE"}) -> bool:
-    return str(value).strip().upper() in bad
-
-
-def build_final_csv(
-    extracted_csv: str | Path,
-    personale_csv: str | Path,
+def clean_registry_df(
+    df: pd.DataFrame,
     *,
-    out_path: str | Path = "final_documents.csv",
-    cluster_col: str = "Cluster",  # dove trovo il DocumentType
-    country_col: str = "Country Document HCM",  # dove trovo il Country
+    name_cols=("Nome", "Cognome"),  # columns to upper-case
+    date_col="Data",
+    country_col="Country",  # change if your column is called differently
 ) -> pd.DataFrame:
     """
-    • Carica i due file (estratti + anagrafica personale)
-    • Ripulisce placeholder, date, maiuscole
-    • Esegue il join su NOME & COGNOME mantenendo i valori già processati
-    • Applica le regole speciali (dipendente non trovato, placeholder, ecc.)
-    • Scrive e restituisce il CSV con 12 colonne:
-      FILENAME | METADATA | DocumentsOfRecord | PersonNumber | DocumentType |
-      Country | DocumentCode | DocumentName | DateFrom | DateTo |
-      SourceSystemOwner | SourceSystemId
+    • Replace every spelling/spacing/casing of 'ERRORE' (and NaN/None) with placeholders
+    • Convert valid dates → YYYY/MM/DD, invalid → 'ERRORE'
+    • Upper-case names + country (placeholders already all-caps)
+    Returns a *new* DataFrame.
     """
-    # ---------- LOAD & NORMALISE ----------
-    df_ext = pd.read_csv(extracted_csv, dtype=str).fillna("ERRORE")
-    df_pers = pd.read_csv(personale_csv, dtype=str).fillna("")
 
-    # uniforma placeholder / capitalizzazione
-    for col, ph in PLACEHOLDERS.items():
-        if col in df_ext.columns:
-            df_ext[col] = (
-                df_ext[col]
-                .apply(lambda x: ph if str(x).strip().upper() == "ERRORE" else x)
-                .str.strip()
-                .str.upper()
-            )
-    for col in ("Nome", "Cognome"):
-        if col in df_pers.columns:
-            df_pers[col] = df_pers[col].str.strip().str.upper()
+    # 1️⃣  normalise any variant of "ERRORE"
+    df = df.applymap(
+        lambda x: "ERRORE"
+        if isinstance(x, str) and x.strip().upper() == "ERRORE"
+        else x
+    )
 
-    # Date in YYYY/MM/DD o placeholder
-    if "Data" in df_ext.columns:
+    # 2️⃣  placeholders for key columns
+    placeholders = {
+        "Nome": "NONAME",
+        "Cognome": "NOLASTNAME",
+        "Data": "NODATE",
+        country_col: "",
+    }
+    for col, ph in placeholders.items():
+        if col in df.columns:
+            df[col] = df[col].fillna("ERRORE").replace("ERRORE", ph)
 
-        def _fmt_date(x):
-            if _is_ph(x):
-                return "NODATE"
+    # 3️⃣  robust date normalisation → YYYY/MM/DD
+    if date_col in df.columns:
+
+        def _format_date(v):
+            if v in ("NODATE", "ERRORE"):
+                return v
             try:
-                return pd.to_datetime(x, errors="raise").strftime("%Y/%m/%d")
+                dt = pd.to_datetime(v, errors="raise", dayfirst=False, utc=False)
+                return dt.strftime("%Y/%m/%d")
             except Exception:
                 return "ERRORE"
 
-        df_ext["Data"] = df_ext["Data"].apply(_fmt_date)
+        df[date_col] = df[date_col].apply(_format_date)
 
-    # ---------- JOIN ----------
-    df_ok = df_ext[
-        ~df_ext.apply(
-            lambda r: _is_ph(r["Nome"]) or _is_ph(r["Cognome"]) or _is_ph(r["Data"]),
-            axis=1,
-        )
-    ]
-    df_bad = df_ext[
-        df_ext.apply(
-            lambda r: _is_ph(r["Nome"]) or _is_ph(r["Cognome"]) or _is_ph(r["Data"]),
-            axis=1,
-        )
-    ]  # con placeholder → "dip. non trovato"
+    # 4️⃣  UPPER-case names
+    for col in name_cols:
+        if col in df.columns:
+            ph = placeholders.get(col)
+            df[col] = df[col].apply(lambda s: s if s == ph else str(s).strip().upper())
 
-    df_join = df_ok.merge(df_pers, on=["Nome", "Cognome"], how="left", indicator=True)
-
-    # PersonNumber dalla colonna dell'anagrafica (qualsiasi nome inizi con "Person")
-    pnum_col = next(
-        (c for c in df_pers.columns if c.lower().startswith("person")), None
-    )
-
-    df_join["PersonNumber"] = df_join.apply(
-        lambda r: r[pnum_col]
-        if pnum_col and r["_merge"] == "both" and r[pnum_col]
-        else "Nessun dipendente",
-        axis=1,
-    )
-    df_bad["PersonNumber"] = "Nessun dipendente"
-
-    # ---------- DOCUMENT TYPE / COUNTRY ----------
-    def _doc_type(row):
-        return (
-            row[cluster_col]
-            if row["PersonNumber"] != "Nessun dipendente"
-            else "SCARTATO"
+    # 5️⃣   Capitalize country with capitalize
+    if country_col in df.columns:
+        df[country_col] = df[country_col].apply(
+            lambda s: s if s == ph else str(s).strip().capitalize()
         )
 
-    df_join["DocumentType"] = df_join.apply(_doc_type, axis=1)
-    df_bad["DocumentType"] = "SCARTATO"
+    return df
 
-    if country_col in df_ext.columns:
-        df_join["Country"] = df_join.apply(
-            lambda r: r[country_col]
-            if r["PersonNumber"] != "Nessun dipendente"
-            else "",
-            axis=1,
-        )
-    else:
-        df_join["Country"] = ""
-    df_bad["Country"] = ""
 
-    # ---------- OTHER COLUMNS ----------
-    df_join["DocumentName"] = df_join.apply(
-        lambda r: f"{r['Nome']} {r['Cognome']}"
-        if r["PersonNumber"] != "Nessun dipendente"
-        else "Nessun dipendente",
-        axis=1,
-    )
-    df_bad["DocumentName"] = "Nessun dipendente"
-
-    df_join["DateFrom"] = df_join["Data"]
-    df_bad["DateFrom"] = df_bad["Data"]
-
-    # DocumentCode
-    def _code(r):
-        if (
-            r["PersonNumber"] == "Nessun dipendente"
-            or _is_ph(r["DateFrom"], {"NODATE", "ERRORE"})
-            or r["DocumentType"] == "SCARTATO"
-        ):
-            return ""
-        return f"{r['PersonNumber']}_{r['DateFrom'].replace('/','')}_{r['DocumentType'].replace(' ', '_')}"
-
-    df_join["DocumentCode"] = df_join.apply(_code, axis=1)
-    df_bad["DocumentCode"] = ""
-
-    # fixed columns
-    for frame in (df_join, df_bad):
-        frame["METADATA"] = "MERGE"
-        frame["DocumentsOfRecord"] = "DocumentsOfRecord"
-        frame["DateTo"] = ""
-        frame["SourceSystemOwner"] = "PEOPLE"
-        frame["SourceSystemId"] = frame["DocumentCode"]
-
-    # ---------- UNION & SELECT ORDER ----------
-    final = pd.concat([df_join, df_bad], ignore_index=True, sort=False)
-
-    final = final.rename(columns={"File_Name": "FILENAME"})  # se diverso, adatta qui
-    ordered_cols = [
+def combine_clean_data(df_results, df_personale):
+    cols_section_1 = [
         "FILENAME",
         "METADATA",
         "DocumentsOfRecord",
@@ -169,43 +86,145 @@ def build_final_csv(
         "SourceSystemOwner",
         "SourceSystemId",
     ]
-    final = final[ordered_cols]
+    df_section_1 = pd.DataFrame(columns=cols_section_1)
 
-    # ---------- SAVE ----------
-    out_path = Path(out_path)
-    final.to_csv(out_path, index=False, sep="|")
-    print(f"✓ CSV creato → {out_path.resolve()}  righe: {len(final)}")
+    cols_section_2 = cols_section_1 + [
+        "DataTypeCode",
+        "URLorTextorFileName",
+        "Title",
+        "File",
+    ]
+    df_section_2 = pd.DataFrame(columns=cols_section_2)
 
-    return final
+    for _, row_results in df_results.iterrows():
+        # 1. Cerchiamo il match e dividiamo in due casi: match o non match
+        # Per cercare il match, cerchiamo il match tra Nome e Cognome in df_personale. Se non c'è, allora è una riga speciale.
+        # Riga speciale costruita con valori specifici e altri no.
+        # 2. Se match, aggiungiamo i dati in df_section_1 i dati.
+        match = False
+        for _, row_personale in df_personale.iterrows():
+            nome_pers = row_personale.get("Nome", "NONAME").strip().upper()
+            cognome_pers = row_personale.get("Cognome", "NOLASTNAME").strip().upper()
+
+            nome_res = row_results.get("Nome", "NONAME").strip().upper()
+            cognome_res = row_results.get("Cognome", "NOLASTNAME").strip().upper()
+            data_res = row_results.get("Data", "NODATE")
+
+            if (
+                nome_res == nome_pers
+                and cognome_res == cognome_pers
+                and data_res != "NODATE"
+            ):
+                # match
+                match = True
+                person_number = row_personale["Person Number"]
+                document_type = row_results.get("Cluster", "Nessun cluster")
+                country = row_results.get("Country", "")
+                document_name = f"{nome_res} {cognome_res}".strip().upper()
+
+        if not match:
+            # non match
+            person_number = "Nessun dipendente"
+            document_type = "SCARTATO"
+            country = ""
+            document_name = "Nessun dipendente"
+            document_code = "Nessun dipendente"
+
+        # aggiungiamo i dati in comune per match e non match
+        file_name = row_results["File_Name"]
+        metadata = "MERGE"
+        documents_of_records = "DocumentsOfRecords"
+        date_from = row_results["Data"]
+        date_normalized = date_from.replace("/", "").strip()
+        document_code = f"{person_number}_{date_normalized}_{document_type}"
+        date_to = ""
+        source_system_owner = "PEOPLE"
+        source_system_id = document_code
+
+        # aggiungiamo i dati per la sezione 1
+        # non usare append
+        df_section_1.loc[len(df_section_1)] = [
+            file_name,
+            metadata,
+            documents_of_records,
+            person_number,
+            document_type,
+            country,
+            document_code,
+            document_name,
+            date_from,
+            date_to,
+            source_system_owner,
+            source_system_id,
+        ]
+
+        # salviamo la riga per il df_section_2
+
+        data_type_code = "FILE"
+        url_or_text_or_file_name = file_name
+        title = file_name
+        file = file_name
+
+        df_section_2.loc[len(df_section_2)] = [
+            file_name,
+            metadata,
+            documents_of_records,
+            person_number,
+            document_type,
+            country,
+            document_code,
+            document_name,
+            date_from,
+            date_to,
+            source_system_owner,
+            source_system_id,
+            data_type_code,
+            url_or_text_or_file_name,
+            title,
+            file,
+        ]
+
+    return df_section_1, df_section_2
 
 
-def run_etl(df_results, config):
+def build_csv_string(df_sec_1: pd.DataFrame, df_sec_2: pd.DataFrame, sep="|") -> str:
+    """
+    Concatena i due dataframe in formato CSV (senza scrivere su disco)
+    e restituisce una singola stringa.
+    """
+    csv1 = df_sec_1.to_csv(index=False, sep=sep)
+    csv2 = df_sec_2.to_csv(index=False, sep=sep)
+    return csv1 + csv2
+
+
+def run_etl(df_results, config, eval=False):
     """
     Legacy function for backward compatibility.
     Now uses the new build_final_csv function.
     """
     # Save the extracted results to a temporary CSV
-    temp_extracted_path = "tmp/extracted_results.csv"
+    os.makedirs("tmp/processed/", exist_ok=True)
+    temp_extracted_path = "tmp/processed/ocr_extracted_results.csv"
     df_results.to_csv(temp_extracted_path, index=False)
 
     # Get the paths for the reference files
-    personale_path = f"data/Elenco Personale.xlsx - Foglio 1.csv"
-    cluster_path = f"data/Cluster Docs.xlsx - Foglio1.csv"
+    personale_path = config["PERSONALE_PATH"]
+    cluster_path = config["CLUSTERS_PATH"]
+    # train_gt_path = config["TRAIN_GT_PATH"]
 
-    # Load cluster data to get DocumentType and Country mapping
-    df_cluster = read_csv_from_gcs(
-        "Cluster Docs.xlsx - Foglio1.csv", config["INPUT_BUCKET"], "data/"
-    )
+    df_personale = pd.read_csv(personale_path)
 
-    # Merge cluster data with extracted results to get DocumentType and Country
-    df_with_cluster = pd.merge(df_results, df_cluster, on="Cluster", how="left")
-    df_with_cluster.to_csv(temp_extracted_path, index=False)
+    # clean the df_results
+    df_results = clean_registry_df(df_results)
 
-    # Use the new build_final_csv function
-    return build_final_csv(
-        extracted_csv=temp_extracted_path,
-        personale_csv=personale_path,
-        out_path="final_documents.csv",
-        cluster_col="Document Type HCM",
-        country_col="Country Document HCM",
-    )
+    # combine the data
+    df_sec_1, df_sec_2 = combine_clean_data(df_results, df_personale)
+
+    # build the csv string
+    csv_string = build_csv_string(df_sec_1, df_sec_2)
+
+    # save the csv string
+    with open("tmp/processed/DocumentsOfRecord.dat", "w") as f:
+        f.write(csv_string)
+
+    return csv_string
