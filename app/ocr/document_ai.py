@@ -162,8 +162,8 @@ def process_documents_docAI(config, tmp_folder: str = "tmp/"):
     return result
 
 
-def process_document_with_gemini(name, content):
-    model = GenerativeModel("gemini-2.0-flash-001")
+def process_document_with_gemini(name, content, config):
+    model = GenerativeModel(config["LLM_MODEL"])
     mime = get_mime_type(name)
     if mime == "application/octet-stream":
         return {
@@ -208,7 +208,7 @@ def process_document_with_gemini(name, content):
 
 
 def all_process_documents_docAI_gemini(config, tmp_folder: str = "tmp/"):
-    model = GenerativeModel("gemini-2.0-flash-001")
+    model = GenerativeModel(config["LLM_MODEL"])
     docs = process_documents_docAI(config, tmp_folder)
     results = []
     for index, (filename, document) in enumerate(docs):
@@ -247,7 +247,7 @@ def all_process_documents_docAI_gemini(config, tmp_folder: str = "tmp/"):
 
 
 def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
-    model = GenerativeModel("gemini-2.5-pro")
+    model = GenerativeModel(config["LLM_MODEL"])
     docs = process_documents_docAI(config, tmp_folder)
     results = []
     df_cluster = pd.read_csv(config["CLUSTERS_PATH"])
@@ -256,11 +256,57 @@ def all_process_documents_OVERPOWERED(config, tmp_folder: str = "tmp/"):
         byte_content = load_file_as_bytes(os.path.join(tmp_folder, filename))
         byte_part = Part.from_data(data=byte_content, mime_type=get_mime_type(filename))
         message = "FILENAME: " + filename + "\n" + "CONTENT: " + str(document)
-        # 2. Format the list as a bulleted string for the prompt
+        # Format the list as a bulleted string for the prompt
 
     cluster_list_str = "- " + "\n- ".join(cluster_classes)
 
-    # 3. Create the prompt using an f-string and inject the cluster list
+    # Create the prompt using an f-string and inject the cluster list
+
+    old_prompt = f"""I documenti ti verranno forniti sia in forma di byte che di testo, con anche il filename.
+        Classifica ogni documento fornito, assegnandolo a uno dei seguenti cluster specifici:
+
+            Cluster (esempi in  lista python, considera i soli valori):
+            {cluster_classes}
+            Rispetta assolutamente i nomi dei cluster, non inventarti nomi. Se sei insicuro assegna "Nessun cluster".
+
+            Estrai inoltre da ogni documento i seguenti dati chiave: Nome, Cognome, Data (intesa come la data di redazione presente nel documento) e Country (intesa come il paese di redazione del documento, nome in inglese).
+            Se non è possibile estrarre il nome, il cognome o la data, restituisci "ERRORE" al posto del valore.
+
+            Procedi in modo accurato e dettagliato, analizzando il contenuto dei documenti per supportare la classificazione e l'estrazione delle informazioni.
+
+            # Steps
+
+            1. Analizza il contenuto del documento fornito (TIFF, PDF o altro formato immagine).
+            2. Identifica ed estrai con precisione Nome, Cognome e la Data di redazione dal testo.
+            3. Valuta il documento per determinarne la classificazione, confrontandolo con i cluster elencati.
+            4. Se la corrispondenza con un cluster è incerta, assegna "Nessun cluster".
+
+            # Output Format
+
+            Restituisci solo una risposta strutturata in JSON con i seguenti campi, senza commenti o spiegazioni aggiuntive:Add commentMore actions
+            ```jsonAdd commentMore actions
+            {{
+            "File_Name": "[Nome del file]",
+            "Nome": "[Nome estratto]",
+            "Cognome": "[Cognome estratto]",
+            "Data": "[Data estratta in formato ISO 8601, es.YYYY-MM-DD o 'ERRORE']",
+            "Cluster": "[Nome cluster assegnato o 'Nessun cluster']",
+            "Country": "[Paese di redazione del documento, nome in inglese o 'ERRORE']"
+            }}
+
+            ```
+            Esempio:
+            ```json
+            {{
+            "File_Name": "nome_file.pdf",
+            "Nome": "Mario",
+            "Cognome": "ERRORE",
+            "Data": "2002-01-04",
+            "Cluster": "Nessun cluster",
+            "Country": "Italy"
+            }}
+            ```
+            """
     prompt = f"""
         ## ROLE
         You are an expert document processing AI. Your task is to perform classification and data extraction with high accuracy.
