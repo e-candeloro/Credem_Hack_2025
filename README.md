@@ -53,7 +53,7 @@ Our diverse team combines expertise in cybersecurity, AI research, data science,
 - **💻 Luca Pedretti** - Data Scientist - [LinkedIn Profile](https://www.linkedin.com/in/luca-pedretti-re/)
 - **🔧 Matteo Peroni** - Data Analyst/UX Design - [LinkedIn Profile](https://www.linkedin.com/in/matteo-peroni-049951237/)
 - **🎓 Omar Carpentiero** - MSc Student in AI Engineering at UNIMORE - [LinkedIn Profile](https://www.linkedin.com/in/omar-carpentiero-6543992a5/)
-- **🤖 Ettore Candeloro** - AI Researcher at AImagelab at UNIMORE - [LinkedIn Profile](https://www.linkedin.com/in/ettore-candeloro/)
+- **🤖 Ettore Candeloro** - AI Researcher at AImagelab at UNIMORE - [LinkedIn Profile](https://linkedin.com/in/ettore-candeloro-900081162)
 
 ### 📊 Solution Presentation
 📽️ **Canva Presentation**: [View our solution presentation](https://www.canva.com/design/DAGq6NnpBmQ/VWwyAapBeBnXo8b5S6CODQ/edit?utm_content=DAGq6NnpBmQ&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
